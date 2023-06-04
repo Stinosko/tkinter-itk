@@ -38,8 +38,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
         result = Image.alpha_composite(CT_image, seg_image)
         return super().zoom_at(result, x, y, zoom, interpolate)
 
-    def button1_press_event_image(self, event):
-        y, x = self.get_mouse_location_dicom(event)
+    def button1_press_event_image(self, x, y):
         self.NP_seg_array[self.slice_index, int(x), int(y)] = 1
         self.update_image()
 

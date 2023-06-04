@@ -180,8 +180,9 @@ class ITKviewerFrame(tk.Frame):
     def stop_drag_event_image(self, event):
         logging.debug("stop pan")
         if (self.start_click_location_X == event.x) and (self.start_click_location_Y == event.y) and self.drag_mode == False:
-            logging.info("button 1 pressed event")
-            self.button1_press_event_image(event)
+            logging.debug("button 1 pressed event")
+            y ,x = self.get_mouse_location_dicom(event)
+            self.button1_press_event_image(x, y)
         self.drag_mode = False
         self.start_click_location_X = None
         self.start_click_location_Y = None
@@ -205,13 +206,23 @@ class ITKviewerFrame(tk.Frame):
         self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, HU: {HU}")
         
     def drag_event_rel_coord(self, event):
+        logging.debug("dragging")
         self.drag_mode = True
+        delta_x, delta_y = self.B1_drag_event(event)
+        return delta_x, delta_y
+
+    def B1_drag_event(self, event):
         delta_x = self.start_click_location_X - event.x
         delta_y = self.start_click_location_Y - event.y
 
         self.start_click_location_X = event.x
         self.start_click_location_Y = event.y
+        if self.drag_mode == False:
+            self.bind_drag_event(delta_x, delta_y)
         return delta_x, delta_y
+
+    def bind_drag_event(self, delta_x, delta_y):
+        return
 
     def change_window_level(self, event):
         self.mainframe.update_idletasks()
