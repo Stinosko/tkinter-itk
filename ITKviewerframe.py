@@ -62,6 +62,7 @@ class ITKviewerFrame(tk.Frame):
         self.mainframe.bind('<ButtonRelease-1>', self.stop_drag_event_image)
         self.mainframe.bind('<Motion>', self.update_label_meta_info_value)
         self.mainframe.bind('<B1-Motion>', self.drag_event_rel_coord)
+        self.mainframe.bind('<Configure>', lambda event: self.update_image())
 
     def get_empty_image(self,x ,y):
         """ Return empty image """
