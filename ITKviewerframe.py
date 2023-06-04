@@ -11,23 +11,23 @@ class ITKviewerFrame(tk.Frame):
         """ Initialize the ITK viewer Frame """
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
+        self.initialize()
+        self.frame = tk.Frame(self)
 
-        self.image_Frame = tk.Frame(self)
-
-        self.image_label = Label(self.image_Frame)
+        self.image_label = Label(self.frame)
         self.image_label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
         
-        self.initialize()
+
 
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array())  # create image object
 
 
-        self.mouse_location_HU = tk.Label(self.image_Frame, text=f"Window: {self.window}, Level: {self.level}")
-        self.mouse_location_HU.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
+        self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
+        self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
         
-        self.image_Frame.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
-        self.image_Frame.rowconfigure(0, weight=1)
-        self.image_Frame.columnconfigure(0, weight=1)
+        self.frame.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
+        self.frame.rowconfigure(0, weight=1)
+        self.frame.columnconfigure(0, weight=1)
 
 
 
@@ -36,12 +36,15 @@ class ITKviewerFrame(tk.Frame):
         self.zoom_delta = 1 
         self.zoom = 1
         self.slice_index = 1
-        self.np_HU_array = np.empty((50,512,512))
+        self.np_DICOM_array = np.empty((50,512,512))
         self.window = 1400
         self.level = 300
+        
+        self.start_click_location_X = None
+        self.start_click_location_Y = None
 
-        self.center_X = self.np_HU_array.shape[1] /2
-        self.center_Y = self.np_HU_array.shape[2] /2
+        self.center_X = self.np_DICOM_array.shape[1] /2
+        self.center_Y = self.np_DICOM_array.shape[2] /2
 
         self.interpolate = Image.NEAREST
 
@@ -57,7 +60,8 @@ class ITKviewerFrame(tk.Frame):
         self.mainframe.bind('<Shift-B1-Motion>', self.change_window_level)
         self.mainframe.bind('<ButtonPress-1>', self.start_drag_event_image) #stop_pan_image
         self.mainframe.bind('<ButtonRelease-1>', self.stop_drag_event_image)
-        self.mainframe.bind('<Motion>', self.update_mouse_location_HU_value)
+        self.mainframe.bind('<Motion>', self.update_label_meta_info_value)
+        self.mainframe.bind('<B1-Motion>', self.drag_event_rel_coord)
 
     def get_empty_image(self,x ,y):
         """ Return empty image """
@@ -67,7 +71,7 @@ class ITKviewerFrame(tk.Frame):
         minimum_hu = self.level - (self.window/2)
         maximum_hu  = self.level + (self.window/2)
 
-        np_HU_2D_array = np.copy(self.np_HU_array[self.slice_index,:,:])
+        np_HU_2D_array = np.copy(self.np_DICOM_array[self.slice_index,:,:])
         np_HU_2D_array[np_HU_2D_array < minimum_hu] = minimum_hu
         np_HU_2D_array[np_HU_2D_array > maximum_hu] = maximum_hu
 
@@ -96,12 +100,12 @@ class ITKviewerFrame(tk.Frame):
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array())
         self.image_label.configure(image=self.image)
 
-    def load_new_CT(self, np_HU_array: np.ndarray):
+    def load_new_CT(self, np_DICOM_array: np.ndarray):
         """placeholder"""
-        self.np_HU_array = np_HU_array
+        self.np_DICOM_array = np_DICOM_array
         
-        self.center_X = self.np_HU_array.shape[1] /2
-        self.center_Y = self.np_HU_array.shape[2] /2
+        self.center_X = self.np_DICOM_array.shape[1] /2
+        self.center_Y = self.np_DICOM_array.shape[2] /2
         
         self.update_image()
 
@@ -123,8 +127,8 @@ class ITKviewerFrame(tk.Frame):
         logging.debug("Next slice")
         self.slice_index += 1
         CT_image_cache = None
-        if self.slice_index >= self.np_HU_array.shape[0]:
-            self.slice_index = self.np_HU_array.shape[0] - 1
+        if self.slice_index >= self.np_DICOM_array.shape[0]:
+            self.slice_index = self.np_DICOM_array.shape[0] - 1
         self.update_image()
         
     def previous_slice(self):
@@ -157,40 +161,56 @@ class ITKviewerFrame(tk.Frame):
         if (self.start_click_location_X == event.x or self.start_click_location_X == None) and (self.start_click_location_Y == event.y or self.start_click_location_Y == None):
             logging.error("pan invalid")
             return
+        
         logging.debug("doing pan")
-        self.center_X += (self.start_click_location_X - event.x) / self.zoom
-        self.center_Y += (self.start_click_location_Y - event.y) / self.zoom
-        logging.info("center X: %s, center Y: %s", self.center_X, self.center_Y)
-        self.start_click_location_X = event.x
-        self.start_click_location_Y = event.y
+        delta_x, delta_y = self.drag_event_rel_coord(event)
+        self.center_X += (delta_x) / self.zoom
+        self.center_Y += (delta_y) / self.zoom
+        logging.debug("center X: %s, center Y: %s", self.center_X, self.center_Y)
 
         self.update_image()
 
     def start_drag_event_image(self, event):
         logging.debug("start pan")
+        self.drag_mode = False
         self.start_click_location_X = event.x
         self.start_click_location_Y = event.y
 
     def stop_drag_event_image(self, event):
         logging.debug("stop pan")
+        if (self.start_click_location_X == event.x) and (self.start_click_location_Y == event.y) and self.drag_mode == False:
+            logging.info("button 1 pressed event")
+            self.button1_press_event_image(event)
+        self.drag_mode = False
         self.start_click_location_X = None
         self.start_click_location_Y = None
     
+    def button1_press_event_image(self, event):
+        pass
+
     def get_mouse_location_dicom(self, event):
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
         x = math.floor(self.center_X + (event.x - w_l/2) / self.zoom)
         y = math.floor(self.center_Y + (event.y - w_h/2) / self.zoom)
         return x, y
 
-    def update_mouse_location_HU_value(self, event):
+    def update_label_meta_info_value(self, event):
         x, y = self.get_mouse_location_dicom(event)
-        if x < 0 or x >= self.np_HU_array.shape[2] or y < 0 or y >= self.np_HU_array.shape[1]:
+        if x < 0 or x >= self.np_DICOM_array.shape[2] or y < 0 or y >= self.np_DICOM_array.shape[1]:
             logging.debug("mouse out of bounds")
-            self.mouse_location_HU.config(text=f"Window: {self.window}, Level: {self.level}")
+            self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
             return
-        HU = self.np_HU_array[self.slice_index, y, x]
-        self.mouse_location_HU.config(text=f"Window: {self.window}, Level: {self.level}, HU: {HU}")
+        HU = self.np_DICOM_array[self.slice_index, y, x]
+        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, HU: {HU}")
         
+    def drag_event_rel_coord(self, event):
+        self.drag_mode = True
+        delta_x = self.start_click_location_X - event.x
+        delta_y = self.start_click_location_Y - event.y
+
+        self.start_click_location_X = event.x
+        self.start_click_location_Y = event.y
+        return delta_x, delta_y
 
     def change_window_level(self, event):
         self.mainframe.update_idletasks()
@@ -198,13 +218,11 @@ class ITKviewerFrame(tk.Frame):
             logging.error(" windowing invalid")
             return
         logging.debug("windowing pan")
-        self.window += self.start_click_location_X - event.x
-        self.level += self.start_click_location_Y - event.y
-
-        self.start_click_location_X = event.x
-        self.start_click_location_Y = event.y
-
-        self.mouse_location_HU.config(text=f"Window: {self.window}, Level: {self.level}")
+        delta_x, delta_y = self.drag_event_rel_coord(event)
+        self.window += delta_x
+        self.level += delta_y
+        
+        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
 
         self.update_image()
 
@@ -215,6 +233,5 @@ class ITKviewerFrame(tk.Frame):
         bg = self.get_empty_image(w_l, w_h)
         
         fg = img.resize((int(img.width * self.zoom), int(img.height * self.zoom)), interpolate)
-        w, h = fg.size
         bg.paste(fg, (int(w_l / 2 - x * self.zoom), int(w_h / 2 - y * self.zoom)))
         return bg

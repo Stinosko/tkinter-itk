@@ -24,6 +24,7 @@ import time
 from fileMenu import FileMenu
 from helpMenu import HelpMenu
 from ITKviewerframe import ITKviewerFrame
+from ITKsegmentationframe import ITKsegmentationFrame
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
@@ -77,7 +78,7 @@ class MainWindow(ttk.Frame):
         self.label2 = tk.Label(self.master, text="Placeholder left\n\n\n\nPlaceholder left", bg="blue")
         self.label2.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
 
-        self.ITKviewer = ITKviewerFrame(self.master, bg = "yellow") # create ITK Frame
+        self.ITKviewer = ITKsegmentationFrame(self.master, bg = "yellow") # create ITK Frame
         self.ITKviewer.grid(row=1, column=1, columnspan = 2, sticky= tk.N + tk.S + tk.E + tk.W)  # show ITK 
         
         self.master.rowconfigure(1, weight=1)
@@ -92,6 +93,7 @@ class MainWindow(ttk.Frame):
 
     def new_image_input(self):
         """ Placeholder"""
+        self.master.update_idletasks()
         logging.info('Importing patient data')
         DICOM_DIR = self.filemenu.get_filename()
         logging.debug(f'Importing patient data: {DICOM_DIR}')
