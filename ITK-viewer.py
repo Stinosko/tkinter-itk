@@ -1,35 +1,37 @@
-import SimpleITK as sitk
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import logging
+import tkinter as tk
+from tkinter import Label, Menu, filedialog, ttk
 
-
-#Create Menubar in Python GUI Application  
-import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
-import random
-
-from skimage.feature import hessian_matrix, hessian_matrix_eigvals
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import SimpleITK as sitk
 from skimage.draw import line
-
-import math, os
-import warnings
-#import progressbar
-
-import multiprocessing
-import shutil
-import operator
-import time
+from skimage.feature import hessian_matrix, hessian_matrix_eigvals
 
 from fileMenu import FileMenu
 from helpMenu import HelpMenu
-from ITKviewerframe import ITKviewerFrame
 from ITKsegmentationframe import ITKsegmentationFrame
+from ITKviewerframe import ITKviewerFrame
+from topbar import Topbar
+
+#import progressbar
+
+
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 
+#https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/
+import importlib
+import pkgutil
 
+discovered_plugins = {
+    name[18:]: importlib.import_module(name).main_class
+    for finder, name, ispkg 
+    in pkgutil.iter_modules()
+    if name.startswith('itk_viewer_plugin_')
+}
+logging.info(discovered_plugins)
 
 class Colors:
     """ Colors to RGB value """
@@ -54,13 +56,20 @@ class Colors:
 
 class MainWindow(ttk.Frame):
     """ Main window class """
+    plugins = {}
+    
+    segmentation_modes = ["None"]
+    current_segmentation_mode = segmentation_modes[0]
+
     def __init__(self, mainframe):
         """ Initialize the main Frame """
         ttk.Frame.__init__(self, master=mainframe)
-
+        self.load_plugins()
+        self.mainframe = mainframe
         self.master.title('ITK viewer')
         self.master.geometry('800x800')  # size of the main window
-
+        self.current_segmentation_mode = tk.StringVar(self.master)
+        self.current_segmentation_mode.set(self.segmentation_modes[0])
         #TO DO: https://stackoverflow.com/a/41679642
         self.menubar = Menu(self.master)
         
@@ -72,7 +81,7 @@ class MainWindow(ttk.Frame):
         
         self.master.config(menu = self.menubar)
 
-        self.label1 = tk.Label(self.master, text="Placeholder top", bg="red")
+        self.label1 = Topbar(self, self.master)
         self.label1.grid(row=0, column=0, columnspan = 3, pady=5, sticky = tk.W + tk.E)
 
         self.label2 = tk.Label(self.master, text="Placeholder left\n\n\n\nPlaceholder left", bg="blue")
@@ -115,6 +124,21 @@ class MainWindow(ttk.Frame):
 
         self.np_CT_array = sitk.GetArrayFromImage(self.CT_ITK_images)
         self.ITKviewer.load_new_CT(self.np_CT_array)
+
+    def load_plugins(self):
+        """ Placeholder"""
+        logging.info('Loading plugins')
+        for plugin in discovered_plugins:
+            self.plugins[plugin] = discovered_plugins[plugin](self)
+            self.plugins[plugin].load_plugin()
+        logging.info(f'Loaded plugins: {self.plugins}')
+
+    def segmentation_mode_changed(self, *args):
+        """ Placeholder"""
+        logging.info(f'Segmentation mode changed to: {self.current_segmentation_mode.get()}')
+        
+
+
 
 def donothing():
     """ Place holder callback"""

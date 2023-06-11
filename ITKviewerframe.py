@@ -19,7 +19,7 @@ class ITKviewerFrame(tk.Frame):
         
 
 
-        self.image = ImageTk.PhotoImage(self.get_image_from_HU_array())  # create image object
+        self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())  # create image object
 
 
         self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
@@ -58,7 +58,7 @@ class ITKviewerFrame(tk.Frame):
         self.mainframe.bind('<Left>', lambda event: self.zoom_out())
         self.mainframe.bind('<Control-B1-Motion>', self.pan_image)
         self.mainframe.bind('<Shift-B1-Motion>', self.change_window_level)
-        self.mainframe.bind('<ButtonPress-1>', self.start_drag_event_image) #stop_pan_image
+        self.mainframe.bind('<ButtonPress-1>', self.start_drag_event_image)
         self.mainframe.bind('<ButtonRelease-1>', self.stop_drag_event_image)
         self.mainframe.bind('<Motion>', self.update_label_meta_info_value)
         self.mainframe.bind('<B1-Motion>', self.drag_event_rel_coord)
@@ -68,7 +68,7 @@ class ITKviewerFrame(tk.Frame):
         """ Return empty image """
         return Image.new("RGB", (x, y), (0, 0, 0))
 
-    def get_image_from_HU_array(self):
+    def get_image_from_HU_array(self, type="RGBA"):
         minimum_hu = self.level - (self.window/2)
         maximum_hu  = self.level + (self.window/2)
 
@@ -87,9 +87,12 @@ class ITKviewerFrame(tk.Frame):
                 logging.error(e)
         np_gray_array = np_gray_array.astype(np.uint8)
 
-        img_arr = Image.fromarray(np_gray_array, "L").convert('RGBA')
-        
-        
+        img_arr = Image.fromarray(np_gray_array, "L").convert(type)
+        return img_arr
+    
+    def get_image_from_HU_array_with_zoom(self):
+        """placeholder"""
+        img_arr = self.get_image_from_HU_array(type="RGBA")
         logging.debug("zooming in")
         img_arr = self.zoom_at(img_arr, x = self.center_X, y = self.center_Y, zoom= self.zoom_delta, interpolate= self.interpolate)
 
@@ -98,7 +101,7 @@ class ITKviewerFrame(tk.Frame):
 
     def update_image(self):
         """placeholder"""
-        self.image = ImageTk.PhotoImage(self.get_image_from_HU_array())
+        self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
         self.image_label.configure(image=self.image)
 
     def load_new_CT(self, np_DICOM_array: np.ndarray):
@@ -187,7 +190,7 @@ class ITKviewerFrame(tk.Frame):
         self.start_click_location_X = None
         self.start_click_location_Y = None
     
-    def button1_press_event_image(self, event):
+    def button1_press_event_image(self, x,y):
         pass
 
     def get_mouse_location_dicom(self, event):
