@@ -162,3 +162,5 @@ cython_debug/
 Patient2049/
 .vscode/
 .tmp/
+.images/
+.models/
