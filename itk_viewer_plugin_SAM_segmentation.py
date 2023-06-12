@@ -127,14 +127,24 @@ class SAM_segmentation:
     
     def sam_segmentation(self):
         #https://github.com/facebookresearch/segment-anything/blob/main/notebooks/predictor_example.ipynb
-        image = self.parent.ITKviewer.get_image_from_HU_array().convert('RGB')
+        image = self.parent.ITKviewer.get_image_from_HU_array(img_type = "RGB")
         self.sam_predictor.set_image(np.array(image))
-        masks, scores, logits = self.sam_predictor.predict(point_coords=np.array([[250, 375]]),
-                            point_labels=np.array([1]), 
+        points_coords = np.empty((0, 2))
+        points_labels = np.empty((0,), dtype=np.uint) # 1 is add to segmentation, 0 is remove from segmentation
+        add_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 1] != 0)
+        for y,x in zip(add_point[0], add_point[1]):
+            points_coords = np.append(points_coords, [[x, y]], axis=0)
+            points_labels = np.append(points_labels, [1], axis=0)
+        remove_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 2] != 0)
+        for y,x in zip(remove_point[0], remove_point[1]):
+            points_coords = np.append(points_coords, [[x, y]], axis=0)
+            points_labels = np.append(points_labels, [0], axis=0)
+        masks, scores, logits = self.sam_predictor.predict(point_coords=points_coords,
+                            point_labels=points_labels, 
                             multimask_output=True)
         print(masks.shape)
         mask = masks[np.argmax(scores),:,:].astype(np.uint8)
-        self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, self.layer_height] = mask
+        self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 3] = mask
         self.update_segmentation()
 
 

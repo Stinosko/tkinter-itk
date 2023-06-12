@@ -68,7 +68,7 @@ class ITKviewerFrame(tk.Frame):
         """ Return empty image """
         return Image.new("RGB", (x, y), (0, 0, 0))
 
-    def get_image_from_HU_array(self, type="RGBA"):
+    def get_image_from_HU_array(self, img_type="RGBA"):
         minimum_hu = self.level - (self.window/2)
         maximum_hu  = self.level + (self.window/2)
 
@@ -87,12 +87,12 @@ class ITKviewerFrame(tk.Frame):
                 logging.error(e)
         np_gray_array = np_gray_array.astype(np.uint8)
 
-        img_arr = Image.fromarray(np_gray_array, "L").convert(type)
+        img_arr = Image.fromarray(np_gray_array, "L").convert(img_type)
         return img_arr
     
     def get_image_from_HU_array_with_zoom(self):
         """placeholder"""
-        img_arr = self.get_image_from_HU_array(type="RGBA")
+        img_arr = self.get_image_from_HU_array(img_type="RGBA")
         logging.debug("zooming in")
         img_arr = self.zoom_at(img_arr, x = self.center_X, y = self.center_Y, zoom= self.zoom_delta, interpolate= self.interpolate)
 
