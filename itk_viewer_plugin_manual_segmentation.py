@@ -40,7 +40,7 @@ class manual_segmentation:
         logging.warn("test")
 
     def clear_segmentation(self):
-        self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :] = np.zeros(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :].shape, dtype=np.uint8)
+        self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :] = np.zeros(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :].shape, dtype=bool)
         self.update_segmentation()
 
     def update_layer(self):
@@ -91,7 +91,7 @@ class manual_segmentation:
 
         NP_seg_array = self.parent.ITKviewer.NP_seg_array
         y , x = self.parent.ITKviewer.get_mouse_location_dicom(event)
-        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = self.layer_height
+        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = True
         self.update_segmentation()
 
     def button3_press_event_image(self, event):
@@ -105,7 +105,7 @@ class manual_segmentation:
 
         NP_seg_array = self.parent.ITKviewer.NP_seg_array
         y , x = self.parent.ITKviewer.get_mouse_location_dicom(event)
-        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = 0
+        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = False
         self.update_segmentation()
 
     def update_segmentation(self):

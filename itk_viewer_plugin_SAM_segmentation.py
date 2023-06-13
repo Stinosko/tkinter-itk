@@ -57,7 +57,7 @@ class SAM_segmentation:
         return self.frame
 
     def clear_segmentation(self):
-        self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :] = np.zeros(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :].shape, dtype=np.uint8)
+        self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :] = np.zeros(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :].shape, dtype=bool)
         self.update_segmentation()
 
     def update_layer(self):
@@ -108,7 +108,7 @@ class SAM_segmentation:
 
         NP_seg_array = self.parent.ITKviewer.NP_seg_array
         y , x = self.parent.ITKviewer.get_mouse_location_dicom(event)
-        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = self.layer_height
+        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = True
         self.update_segmentation()
 
     def button3_press_event_image(self, event):
@@ -122,7 +122,7 @@ class SAM_segmentation:
 
         NP_seg_array = self.parent.ITKviewer.NP_seg_array
         y , x = self.parent.ITKviewer.get_mouse_location_dicom(event)
-        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = 0
+        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = False
         self.update_segmentation()
 
     def update_segmentation(self):
@@ -134,11 +134,11 @@ class SAM_segmentation:
         self.sam_predictor.set_image(np.array(image))
         points_coords = np.empty((0, 2))
         points_labels = np.empty((0,), dtype=np.uint) # 1 is add to segmentation, 0 is remove from segmentation
-        add_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 1] != 0)
+        add_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 1] == True)
         for y,x in zip(add_point[0], add_point[1]):
             points_coords = np.append(points_coords, [[x, y]], axis=0)
             points_labels = np.append(points_labels, [1], axis=0)
-        remove_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 2] != 0)
+        remove_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 2] == True)
         for y,x in zip(remove_point[0], remove_point[1]):
             points_coords = np.append(points_coords, [[x, y]], axis=0)
             points_labels = np.append(points_labels, [0], axis=0)
@@ -146,7 +146,8 @@ class SAM_segmentation:
                             point_labels=points_labels, 
                             multimask_output=True)
         print(masks.shape)
-        mask = masks[np.argmax(scores),:,:].astype(np.uint8)
+        print(masks.dtype)
+        mask = masks[np.argmax(scores),:,:]
         self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 3] = mask
         self.update_segmentation()
 
