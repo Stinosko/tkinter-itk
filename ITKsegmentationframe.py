@@ -14,7 +14,8 @@ def timer_func(func):
         t1 = timer()
         result = func(*args, **kwargs)
         t2 = timer()
-        print(f'{func.__name__}() executed in {(t2-t1):.6f}s')
+        if t2-t1 > 0.0333: #30 FPS
+            logging.info(f'{func.__name__}() executed in {(t2-t1):.6f}s')
         return result
     return wrapper
 
