@@ -6,6 +6,7 @@ from Utils import Spinbox
 from segment_anything import SamPredictor, sam_model_registry
 from segment_anything.utils.transforms import ResizeLongestSide
 import os
+import torch
 
 class SAM_segmentation:
     model_type= "vit_b"
@@ -19,7 +20,9 @@ class SAM_segmentation:
         self.parent = parent
         self.layer_height = 1
         self.sam_model = sam_model_registry[self.model_type](checkpoint=os.path.join("models", self.checkpoint))
-        self.sam_model.to(device = self.device)
+        
+        if torch.cuda.is_available():
+            self.sam_model.to(device = self.device) 
         self.sam_predictor = SamPredictor(self.sam_model)
         
     def load_plugin(self):
