@@ -4,6 +4,8 @@ import logging
 import numpy as np
 from PIL import Image, ImageTk
 import math
+from Utils import timer_func
+
 
 class ITKviewerFrame(tk.Frame):
     """ ITK viewer Frame """
@@ -12,6 +14,7 @@ class ITKviewerFrame(tk.Frame):
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
         
+        
         self.frame = tk.Frame(self)
         self.image_label = Label(self.frame)  
               
@@ -19,7 +22,7 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
         
 
-
+        self.image_needs_updating = True
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())  # create image object
         self.image_label.configure(image=self.image)
 
@@ -68,7 +71,7 @@ class ITKviewerFrame(tk.Frame):
     def get_empty_image(self,x ,y):
         """ Return empty image """
         return Image.new("RGB", (x, y), (0, 0, 0))
-
+    
     def get_image_from_HU_array(self, img_type="RGBA"):
         minimum_hu = self.level - (self.window/2)
         maximum_hu  = self.level + (self.window/2)
@@ -91,14 +94,15 @@ class ITKviewerFrame(tk.Frame):
         img_arr = Image.fromarray(np_gray_array, "L").convert(img_type)
         return img_arr
     
-    def get_image_from_HU_array_with_zoom(self):
+    
+    def get_image_from_HU_array_with_zoom(self, force_update=False):
         """placeholder"""
-        img_arr = self.get_image_from_HU_array(img_type="RGBA")
-        logging.debug("zooming in")
-        img_arr = self.zoom_at(img_arr, x = self.center_X, y = self.center_Y, zoom= self.zoom_delta, interpolate= self.interpolate)
-
-
-        return img_arr
+        if self.image_needs_updating or force_update:
+            self.base_img = self.get_image_from_HU_array(img_type="RGBA")
+            logging.debug("zooming in")
+        self.base_img_zoomed = self.zoom_at(self.base_img, x = self.center_X, y = self.center_Y, zoom= self.zoom_delta, interpolate= self.interpolate)
+        self.image_needs_updating = False
+        return self.base_img_zoomed
 
     def update_image(self):
         """placeholder"""
@@ -112,11 +116,13 @@ class ITKviewerFrame(tk.Frame):
         
         self.center_X = self.np_DICOM_array.shape[1] /2
         self.center_Y = self.np_DICOM_array.shape[2] /2
-        
+
+        self.image_needs_updating = True
         self.update_image()
 
     def __scroll(self, event):
         logging.debug("Scrolling")
+        self.image_needs_updating = True
         if event.delta == -120:  # scroll down, smaller
             self.previous_slice()
         if event.delta == 120:  # scroll up, bigger
@@ -131,6 +137,7 @@ class ITKviewerFrame(tk.Frame):
 
     def next_slice(self):
         logging.debug("Next slice")
+        self.image_needs_updating = True
         self.slice_index += 1
         CT_image_cache = None
         if self.slice_index >= self.np_DICOM_array.shape[0]:
@@ -138,6 +145,7 @@ class ITKviewerFrame(tk.Frame):
         self.update_image()
         
     def previous_slice(self):
+        self.image_needs_updating = True
         logging.debug("Previous slice")
         self.slice_index -= 1
         CT_image_cache = None
@@ -230,6 +238,7 @@ class ITKviewerFrame(tk.Frame):
         return
 
     def change_window_level(self, event):
+        self.image_needs_updating = True
         self.mainframe.update_idletasks()
         if (self.start_click_location_X == event.x or self.start_click_location_X == None) and (self.start_click_location_Y == event.y or self.start_click_location_Y == None):
             logging.error(" windowing invalid")

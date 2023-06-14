@@ -6,26 +6,16 @@ from PIL import Image, ImageTk
 import math
 
 from ITKviewerframe import ITKviewerFrame
+from Utils import timer_func
 
-from timeit import default_timer as timer
-
-def timer_func(func):
-    def wrapper(*args, **kwargs):
-        t1 = timer()
-        result = func(*args, **kwargs)
-        t2 = timer()
-        if t2-t1 > 0.0333: #30 FPS
-            logging.info(f'{func.__name__}() executed in {(t2-t1):.6f}s')
-        return result
-    return wrapper
 
 class ITKsegmentationFrame(ITKviewerFrame):
     def __init__(self, mainframe, **kwargs):
         """ Initialize the ITK viewer Frame """
         self.max_layers = 255
+        self.seg_image_needs_update = True
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
-        
         self.seg_image = ImageTk.PhotoImage(self.get_image_from_seg_array())
 
     def initialize(self):
@@ -35,10 +25,11 @@ class ITKsegmentationFrame(ITKviewerFrame):
     
     def load_new_CT(self, np_DICOM_array: np.ndarray):
         """placeholder"""
+        self.seg_image_needs_update = True
         self.NP_seg_array = np.empty(np_DICOM_array.shape + (self.max_layers,), dtype=bool)
         super().load_new_CT(np_DICOM_array)
     
-    @timer_func
+    
     def get_image_from_seg_array(self):
         """placeholder"""
         image_segmentation_array = np.zeros((self.NP_seg_array.shape[1], self.NP_seg_array.shape[2], 4), dtype=np.uint8)
@@ -56,13 +47,42 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.image_segmentation = Image.fromarray(image_segmentation_array, "RGBA")
         return self.image_segmentation
 
+    @timer_func(FPS_target=60)
     def zoom_at(self, img, x=0, y=0, zoom=1, interpolate=Image.LANCZOS):
         """ Zoom at x,y location"""
         CT_image = img.convert('RGBA')
-        seg_image = self.get_image_from_seg_array()
-        result = Image.alpha_composite(CT_image, seg_image)
+        if self.seg_image_needs_update:
+            self.seg_image = self.get_image_from_seg_array()
+            self.seg_image_needs_update = False
+        result = Image.alpha_composite(CT_image, self.seg_image)
         return super().zoom_at(result, x, y, zoom, interpolate)
 
     def button1_press_event_image(self, x, y):
         return 
 
+
+    def set_segmentation_point_current_slice(self, x, y, layer_height, value: bool):
+        self.NP_seg_array[self.slice_index, y, x, layer_height] = value
+        self.seg_image_needs_update = True
+        self.update_image()
+
+    def set_segmentation_mask_current_slice(self, layer_height, mask: np.ndarray):
+        self.NP_seg_array[self.slice_index, :, :, layer_height] = mask
+        self.seg_image_needs_update = True
+        self.update_image()
+
+    def clear_segmentation_mask_current_slice(self, layer_height = None):
+        if layer_height is None:
+            self.NP_seg_array[self.slice_index, :, :, :] = False
+        else:
+            self.NP_seg_array[self.slice_index, :, :, layer_height] = False
+        self.seg_image_needs_update = True
+        self.update_image()
+
+    def next_slice(self):
+        self.seg_image_needs_update = True
+        return super().next_slice()
+    
+    def previous_slice(self):
+        self.seg_image_needs_update = True
+        return super().previous_slice()

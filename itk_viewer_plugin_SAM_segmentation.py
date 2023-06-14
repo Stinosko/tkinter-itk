@@ -106,9 +106,8 @@ class SAM_segmentation:
         logging.debug(event.state - self.__previous_state)
         self.__previous_state = event.state  # remember the last keystroke state
 
-        NP_seg_array = self.parent.ITKviewer.NP_seg_array
         y , x = self.parent.ITKviewer.get_mouse_location_dicom(event)
-        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = True
+        self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), self.layer_height, True)
         self.update_segmentation()
 
     def button3_press_event_image(self, event):
@@ -120,9 +119,8 @@ class SAM_segmentation:
         logging.debug(event.state - self.__previous_state)
         self.__previous_state = event.state
 
-        NP_seg_array = self.parent.ITKviewer.NP_seg_array
         y , x = self.parent.ITKviewer.get_mouse_location_dicom(event)
-        NP_seg_array[self.parent.ITKviewer.slice_index, int(x), int(y), self.layer_height] = False
+        self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), self.layer_height, False)
         self.update_segmentation()
 
     def update_segmentation(self):
@@ -148,7 +146,7 @@ class SAM_segmentation:
         print(masks.shape)
         print(masks.dtype)
         mask = masks[np.argmax(scores),:,:]
-        self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 3] = mask
+        self.parent.ITKviewer.set_segmentation_mask_current_slice(3, mask)
         self.update_segmentation()
 
 
