@@ -119,7 +119,7 @@ class MainWindow(ttk.Frame):
 
         self.CT_ITK_images = self.reader.Execute()
         
-        if self.reader.GetMetaData(slice = 1, key ="0008|0060") != "CT":
+        if self.reader.GetMetaData(slice = 0, key ="0008|0060") != "CT":
             logging.error("Not a CT image")
 
         self.np_CT_array = sitk.GetArrayFromImage(self.CT_ITK_images)

@@ -35,7 +35,7 @@ class ITKviewerFrame(tk.Frame):
         """ placeholder """
         self.zoom_delta = 1 
         self.zoom = 1
-        self.slice_index = 1
+        self.slice_index = 0
         self.np_DICOM_array = np.empty((50,512,512))
         self.window = 1400
         self.level = 300
@@ -106,6 +106,7 @@ class ITKviewerFrame(tk.Frame):
 
     def load_new_CT(self, np_DICOM_array: np.ndarray):
         """placeholder"""
+        self.slice_index = 0
         self.np_DICOM_array = np_DICOM_array
         
         self.center_X = self.np_DICOM_array.shape[1] /2
