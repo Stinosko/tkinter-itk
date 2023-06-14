@@ -49,8 +49,8 @@ class SAM_segmentation:
 
         self.button2 = tk.Button(self.frame, text="SAM", command=self.sam_segmentation)
         self.button2.grid(row=0, column=2, sticky=tk.E + tk.W, pady=1)
-        self.parent.bind_all('<ButtonPress-1>', self.button1_press_event_image)
-        self.parent.bind_all('<ButtonPress-3>', self.button3_press_event_image)
+        self.parent.ITKviewer.image_label.bind('<ButtonPress-1>', self.button1_press_event_image, add = "+")
+        self.parent.ITKviewer.image_label.bind('<ButtonPress-3>', self.button3_press_event_image, add = "+")
 
 
 

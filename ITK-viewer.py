@@ -87,7 +87,7 @@ class MainWindow(ttk.Frame):
         self.label2 = tk.Label(self.master, text="Placeholder left\n\n\n\nPlaceholder left", bg="blue")
         self.label2.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
 
-        self.ITKviewer = ITKsegmentationFrame(self.master, bg = "yellow") # create ITK Frame
+        self.ITKviewer = ITKsegmentationFrame(self.mainframe, bg = "yellow") # create ITK Frame
         self.ITKviewer.grid(row=1, column=1, columnspan = 2, sticky= tk.N + tk.S + tk.E + tk.W)  # show ITK 
         
         self.master.rowconfigure(1, weight=1)

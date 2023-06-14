@@ -11,16 +11,17 @@ class ITKviewerFrame(tk.Frame):
         """ Initialize the ITK viewer Frame """
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
-        self.initialize()
+        
         self.frame = tk.Frame(self)
-
-        self.image_label = Label(self.frame)
+        self.image_label = Label(self.frame)  
+              
+        self.initialize()
         self.image_label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
         
 
 
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())  # create image object
-
+        self.image_label.configure(image=self.image)
 
         self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
         self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
@@ -48,21 +49,21 @@ class ITKviewerFrame(tk.Frame):
 
         self.interpolate = Image.NEAREST
 
-        self.mainframe.bind('<MouseWheel>', self.__scroll)  # zoom for Windows and MacOS, but not Linux
-        self.mainframe.bind('<Button-5>',   self.__scroll)  # zoom for Linux, wheel scroll down
-        self.mainframe.bind('<Button-4>',   self.__scroll)  # zoom for Linux, wheel scroll up
-        self.mainframe.bind('<Up>', lambda event: self.next_slice())
-        self.mainframe.bind('<Down>', lambda event: self.previous_slice())
-        self.mainframe.bind('<Control-MouseWheel>', self.__zoom)
-        self.mainframe.bind('<Right>', lambda event: self.zoom_in())
-        self.mainframe.bind('<Left>', lambda event: self.zoom_out())
-        self.mainframe.bind('<Control-B1-Motion>', self.pan_image)
-        self.mainframe.bind('<Shift-B1-Motion>', self.change_window_level)
-        self.mainframe.bind('<ButtonPress-1>', self.start_drag_event_image)
-        self.mainframe.bind('<ButtonRelease-1>', self.stop_drag_event_image)
-        self.mainframe.bind('<Motion>', self.update_label_meta_info_value)
-        self.mainframe.bind('<B1-Motion>', self.drag_event_rel_coord)
-        self.mainframe.bind('<Configure>', lambda event: self.update_image())
+        self.image_label.bind('<MouseWheel>', self.__scroll)  # zoom for Windows and MacOS, but not Linux
+        self.image_label.bind('<Button-5>',   self.__scroll)  # zoom for Linux, wheel scroll down
+        self.image_label.bind('<Button-4>',   self.__scroll)  # zoom for Linux, wheel scroll up
+        self.image_label.bind('<Up>', lambda event: self.next_slice())
+        self.image_label.bind('<Down>', lambda event: self.previous_slice())
+        self.image_label.bind('<Control-MouseWheel>', self.__zoom)
+        self.image_label.bind('<Right>', lambda event: self.zoom_in())
+        self.image_label.bind('<Left>', lambda event: self.zoom_out())
+        self.image_label.bind('<Control-B1-Motion>', self.pan_image)
+        self.image_label.bind('<Shift-B1-Motion>', self.change_window_level)
+        self.image_label.bind('<ButtonPress-1>', self.start_drag_event_image)
+        self.image_label.bind('<ButtonRelease-1>', self.stop_drag_event_image)
+        self.image_label.bind('<Motion>', self.update_label_meta_info_value)
+        self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord)
+        self.image_label.bind('<Configure>', lambda event: self.update_image())
 
     def get_empty_image(self,x ,y):
         """ Return empty image """
