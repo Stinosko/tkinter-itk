@@ -57,7 +57,7 @@ class SAM_segmentation:
         return self.frame
 
     def clear_segmentation(self):
-        self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :] = np.zeros(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index,: , :, :].shape, dtype=bool)
+        self.parent.ITKviewer.clear_segmentation_mask_current_slice()
         self.update_segmentation()
 
     def update_layer(self):

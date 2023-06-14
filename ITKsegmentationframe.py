@@ -20,7 +20,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
 
     def initialize(self):
         self.NP_seg_array = np.empty((50,512,512, self.max_layers), dtype=bool)
-        self.image_segmentation = Image.fromarray(np.zeros((self.NP_seg_array.shape[1], self.NP_seg_array.shape[2], 4), dtype=np.uint8))
+        self.seg_image = Image.fromarray(np.zeros((self.NP_seg_array.shape[1], self.NP_seg_array.shape[2], 4), dtype=np.uint8))
         super().initialize()
     
     def load_new_CT(self, np_DICOM_array: np.ndarray):
@@ -29,7 +29,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.NP_seg_array = np.empty(np_DICOM_array.shape + (self.max_layers,), dtype=bool)
         super().load_new_CT(np_DICOM_array)
     
-    
+    @timer_func(FPS_target=6000)
     def get_image_from_seg_array(self):
         """placeholder"""
         image_segmentation_array = np.zeros((self.NP_seg_array.shape[1], self.NP_seg_array.shape[2], 4), dtype=np.uint8)
@@ -44,8 +44,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
         image_segmentation_array[NP_seg_array_combined == 4] = [255, 0, 255, 125]
         image_segmentation_array[NP_seg_array_combined == 5] = [0, 255, 255, 125]
 
-        self.image_segmentation = Image.fromarray(image_segmentation_array, "RGBA")
-        return self.image_segmentation
+        return Image.fromarray(image_segmentation_array, "RGBA")
 
     @timer_func(FPS_target=60)
     def zoom_at(self, img, x=0, y=0, zoom=1, interpolate=Image.LANCZOS):
@@ -62,7 +61,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
 
 
     def set_segmentation_point_current_slice(self, x, y, layer_height, value: bool):
-        self.NP_seg_array[self.slice_index, y, x, layer_height] = value
+        self.NP_seg_array[self.slice_index, x, y, layer_height] = value
         self.seg_image_needs_update = True
         self.update_image()
 
