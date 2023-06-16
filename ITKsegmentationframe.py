@@ -23,11 +23,11 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.seg_image = Image.fromarray(np.zeros((self.NP_seg_array.shape[1], self.NP_seg_array.shape[2], 4), dtype=np.uint8))
         super().initialize()
     
-    def load_new_CT(self, np_DICOM_array: np.ndarray):
+    def load_new_CT(self, np_DICOM_array: np.ndarray, window: int = 500, level: int = 1000, **kwargs):
         """placeholder"""
         self.seg_image_needs_update = True
         self.NP_seg_array = np.empty(np_DICOM_array.shape + (self.max_layers,), dtype=bool)
-        super().load_new_CT(np_DICOM_array)
+        super().load_new_CT(np_DICOM_array, window, level, **kwargs)
     
     @timer_func(FPS_target=6000)
     def get_image_from_seg_array(self):

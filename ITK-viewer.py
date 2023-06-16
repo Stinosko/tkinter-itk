@@ -121,9 +121,15 @@ class MainWindow(ttk.Frame):
         
         if self.reader.GetMetaData(slice = 0, key ="0008|0060") != "CT":
             logging.error("Not a CT image")
+        # window = self.reader.GetMetaData(slice = 0, key ="0028|1050")
+        # level = self.reader.GetMetaData(slice = 0, key ="0028|1051")
+
+        # logging.info(f'Window: {window}, level: {level}')
+        # window = int(window)
+        # level = int(level)
 
         self.np_CT_array = sitk.GetArrayFromImage(self.CT_ITK_images)
-        self.ITKviewer.load_new_CT(self.np_CT_array)
+        self.ITKviewer.load_new_CT(self.np_CT_array, ITK_image = self.CT_ITK_images)
 
     def load_plugins(self):
         """ Placeholder"""

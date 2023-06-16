@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image, ImageTk
 import math
 from Utils import timer_func
-
+import SimpleITK as sitk
 
 class ITKviewerFrame(tk.Frame):
     """ ITK viewer Frame """
@@ -13,8 +13,7 @@ class ITKviewerFrame(tk.Frame):
         """ Initialize the ITK viewer Frame """
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
-        
-        
+        self.ITK_image = sitk.Image(512,512,50, sitk.sitkInt16)
         self.frame = tk.Frame(self)
         self.image_label = Label(self.frame)  
               
@@ -40,7 +39,7 @@ class ITKviewerFrame(tk.Frame):
         self.zoom_delta = 1 
         self.zoom = 1
         self.slice_index = 0
-        self.np_DICOM_array = np.empty((50,512,512))
+        self.np_DICOM_array = np.empty((512,512,50))
         self.window = 1400
         self.level = 300
         
@@ -72,26 +71,18 @@ class ITKviewerFrame(tk.Frame):
         """ Return empty image """
         return Image.new("RGB", (x, y), (0, 0, 0))
     
+    @timer_func(FPS_target=60)
     def get_image_from_HU_array(self, img_type="RGBA"):
         minimum_hu = self.level - (self.window/2)
         maximum_hu  = self.level + (self.window/2)
-
-        np_HU_2D_array = np.copy(self.np_DICOM_array[self.slice_index,:,:])
-        np_HU_2D_array[np_HU_2D_array < minimum_hu] = minimum_hu
-        np_HU_2D_array[np_HU_2D_array > maximum_hu] = maximum_hu
-
-        with np.errstate(invalid='raise'):
-            try:
-                np_gray_array = np.divide(np_HU_2D_array - np_HU_2D_array.min(), 
-                                    (np_HU_2D_array.max() - np_HU_2D_array.min())
-                                    )*255
-            except FloatingPointError:
-                np_gray_array = np.zeros(np_HU_2D_array.shape)
-            except Exception as e:
-                logging.error(e)
-        np_gray_array = np_gray_array.astype(np.uint8)
-
-        img_arr = Image.fromarray(np_gray_array, "L").convert(img_type)
+        
+        slice_gray_image = sitk.GetArrayFromImage( sitk.IntensityWindowing(self.ITK_image[:,:, self.slice_index],
+                                            int(minimum_hu), int(maximum_hu),
+                                            0,
+                                            255)
+                                        ).astype(np.uint8)
+        
+        img_arr = Image.fromarray(slice_gray_image, "L").convert(img_type)
         return img_arr
     
     
@@ -109,13 +100,35 @@ class ITKviewerFrame(tk.Frame):
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
         self.image_label.configure(image=self.image)
 
-    def load_new_CT(self, np_DICOM_array: np.ndarray):
+    def load_new_CT(self, np_DICOM_array: np.ndarray, window: int = 500, level: int = 1000, ITK_image: sitk.Image = None):
         """placeholder"""
+        # https://github.com/jonasteuwen/SimpleITK-examples/blob/master/examples/apply_lut.py
+        # center = 500
+        # width = 1000
+
+        # lower_bound = center - (width - 1)/2
+        # upper_bound = center + (width - 1)/2
+
+        # min_max = sitk.MinimumMaximumImageFilter()
+        # min_max.Execute(ct_head)
+
+        # image = sitk.IntensityWindowing(ct_head,
+        #                                 lower_bound, upper_bound,
+        #                                 0,
+        #                                 255)
+        if ITK_image is not None:
+            self.ITK_image = ITK_image
+
         self.slice_index = 0
         self.np_DICOM_array = np_DICOM_array
         
         self.center_X = self.np_DICOM_array.shape[1] /2
         self.center_Y = self.np_DICOM_array.shape[2] /2
+
+        if window is not None:
+            self.window = window
+        if level is not None:
+            self.level = level
 
         self.image_needs_updating = True
         self.update_image()
