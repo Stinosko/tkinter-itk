@@ -13,7 +13,9 @@ class ITKviewerFrame(tk.Frame):
         """ Initialize the ITK viewer Frame """
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
-        self.ITK_image = sitk.Image(512,512,50, sitk.sitkInt16)
+        self.ITK_image = self.get_dummy_SITK_image()
+        self.np_DICOM_array = sitk.GetArrayFromImage(self.ITK_image)
+
         self.frame = tk.Frame(self)
         self.image_label = Label(self.frame)  
               
@@ -39,15 +41,14 @@ class ITKviewerFrame(tk.Frame):
         self.zoom_delta = 1 
         self.zoom = 1
         self.slice_index = 0
-        self.np_DICOM_array = np.empty((512,512,50))
         self.window = 1400
         self.level = 300
         
         self.start_click_location_X = None
         self.start_click_location_Y = None
 
-        self.center_X = self.np_DICOM_array.shape[1] /2
-        self.center_Y = self.np_DICOM_array.shape[2] /2
+        self.center_X = 0
+        self.center_Y = 0
 
         self.interpolate = Image.NEAREST
 
@@ -67,22 +68,43 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord)
         self.image_label.bind('<Configure>', lambda event: self.update_image())
 
+    def get_dummy_DiCOM_array(self):
+        """placeholder"""
+        np_array= np.empty((512,512,50))
+        number = 0
+        for i in range(np_array.shape[0]):
+            for j in range(np_array.shape[1]):
+                np_array[i,j,:] = number
+                number += 1
+
+        return np_array
+
     def get_empty_image(self,x ,y):
         """ Return empty image """
         return Image.new("RGB", (x, y), (0, 0, 0))
     
-    @timer_func(FPS_target=60)
+    def get_dummy_SITK_image(self):
+        """placeholder"""
+        image = sitk.Image(512,512,50, sitk.sitkInt16)
+        number = 10
+        for i in range(int(image.GetSize()[0]/2)):
+            image[i*2, :,:] = number
+            number += 3
+        return image
+
+    @timer_func(FPS_target=50000)
     def get_image_from_HU_array(self, img_type="RGBA"):
         minimum_hu = self.level - (self.window/2)
         maximum_hu  = self.level + (self.window/2)
-        
-        slice_gray_image = sitk.GetArrayFromImage( sitk.IntensityWindowing(self.ITK_image[:,:, self.slice_index],
+        print(minimum_hu, maximum_hu)
+        self.slice_gray_image = sitk.IntensityWindowing(self.ITK_image[:,:, self.slice_index],
                                             int(minimum_hu), int(maximum_hu),
                                             0,
                                             255)
-                                        ).astype(np.uint8)
+        self.slice_gray_image = sitk.Cast(self.slice_gray_image, sitk.sitkUInt8)
+        np_slice_gray_image = sitk.GetArrayFromImage(self.slice_gray_image)
         
-        img_arr = Image.fromarray(slice_gray_image, "L").convert(img_type)
+        img_arr = Image.fromarray(np_slice_gray_image, "L").convert(img_type)
         return img_arr
     
     
@@ -91,7 +113,7 @@ class ITKviewerFrame(tk.Frame):
         if self.image_needs_updating or force_update:
             self.base_img = self.get_image_from_HU_array(img_type="RGBA")
             logging.debug("zooming in")
-        self.base_img_zoomed = self.zoom_at(self.base_img, x = self.center_X, y = self.center_Y, zoom= self.zoom_delta, interpolate= self.interpolate)
+        self.base_img_zoomed = self.zoom_itk(self.base_img, x = self.center_X, y = self.center_Y, zoom= self.zoom_delta, interpolate= self.interpolate)
         self.image_needs_updating = False
         return self.base_img_zoomed
 
@@ -100,7 +122,7 @@ class ITKviewerFrame(tk.Frame):
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
         self.image_label.configure(image=self.image)
 
-    def load_new_CT(self, np_DICOM_array: np.ndarray, window: int = 500, level: int = 1000, ITK_image: sitk.Image = None):
+    def load_new_CT(self, np_DICOM_array: np.ndarray, window: int = 1000, level: int = 500, ITK_image: sitk.Image = None):
         """placeholder"""
         # https://github.com/jonasteuwen/SimpleITK-examples/blob/master/examples/apply_lut.py
         # center = 500
@@ -218,8 +240,9 @@ class ITKviewerFrame(tk.Frame):
 
     def get_mouse_location_dicom(self, event):
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
-        x = math.floor(self.center_X + (event.x - w_l/2) / self.zoom)
-        y = math.floor(self.center_Y + (event.y - w_h/2) / self.zoom)
+        print()
+        x = round(self.center_X + event.x / self.zoom)
+        y = round(self.center_Y + event.y / self.zoom)
         return x, y
 
     def update_label_meta_info_value(self, event):
@@ -274,3 +297,29 @@ class ITKviewerFrame(tk.Frame):
         fg = img.resize((int(img.width * self.zoom), int(img.height * self.zoom)), interpolate)
         bg.paste(fg, (int(w_l / 2 - x * self.zoom), int(w_h / 2 - y * self.zoom)))
         return bg
+
+    def zoom_itk(self, *args, **kwargs):
+        """ Zoom at x,y location"""
+        euler2d = sitk.Euler2DTransform()
+        # Why do we set the center?
+
+        
+        output_spacing = [1/self.zoom ,1 /self.zoom]
+        # Identity cosine matrix (arbitrary decision).
+        output_direction = [1.0, 0.0, 0.0, 1.0]
+        # Minimal x,y coordinates are the new origin.
+        output_origin = [self.center_X, self.center_Y]
+        # Compute grid size based on the physical size and spacing.
+        output_size = [self.image_label.winfo_width(), self.image_label.winfo_height()]
+
+        resampled_image = sitk.Resample(
+            self.slice_gray_image,
+            output_size,
+            euler2d,
+            sitk.sitkNearestNeighbor,
+            output_origin,
+            output_spacing,
+            output_direction,
+        )
+        return Image.fromarray( sitk.GetArrayFromImage(resampled_image).astype(np.uint8), mode="L")
+        

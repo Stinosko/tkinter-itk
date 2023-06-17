@@ -17,16 +17,6 @@ class Spinbox(tk.Spinbox):
 
 from timeit import default_timer as timer
 
-def timer_func(func):
-    def wrapper(*args, **kwargs):
-        t1 = timer()
-        result = func(*args, **kwargs)
-        t2 = timer()
-        if t2-t1 > 0.0333: #30 FPS
-            logging.info(f'{func.__name__} from {func.__module__} executed in {(t2-t1):.6f}s')
-        return result
-    return wrapper
-
 
 
 def timer_func(FPS_target=30):
