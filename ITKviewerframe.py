@@ -240,7 +240,7 @@ class ITKviewerFrame(tk.Frame):
 
     def get_mouse_location_dicom(self, event):
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
-        print()
+        
         x = round(self.center_X + event.x / self.zoom)
         y = round(self.center_Y + event.y / self.zoom)
         return x, y
