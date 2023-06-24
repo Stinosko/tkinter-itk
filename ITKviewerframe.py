@@ -91,6 +91,7 @@ class ITKviewerFrame(tk.Frame):
         for i in range(int(image.GetSize()[0]/2)):
             image[i*2, :,:] = number
             number += 3
+        image.SetSpacing([0.5,0.75,1])
         return image
 
     @timer_func(FPS_target=50000)
@@ -243,8 +244,8 @@ class ITKviewerFrame(tk.Frame):
     def get_mouse_location_dicom(self, event):
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
         sp_x , sp_y = self.slice_gray_image.GetSpacing()
-        x = round(self.center_X + event.x / sp_x / self.zoom )
-        y = round(self.center_Y + event.y / sp_y / self.zoom )
+        x = round(self.center_X / sp_x + event.x / sp_x / self.zoom )
+        y = round(self.center_Y / sp_y + event.y / sp_y / self.zoom )
         return x, y
 
     def update_label_meta_info_value(self, event):
@@ -305,7 +306,6 @@ class ITKviewerFrame(tk.Frame):
         euler2d = sitk.Euler2DTransform()
         # Why do we set the center?
 
-        sp_x , sp_y = self.slice_gray_image.GetSpacing()
         output_spacing = [1/ self.zoom ,1 /self.zoom]
         # Identity cosine matrix (arbitrary decision).
         output_direction = [1.0, 0.0, 0.0, 1.0]

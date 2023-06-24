@@ -21,6 +21,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
 
     def initialize(self):
         self.NP_seg_array = sitk.Image(self.ITK_image.GetSize(), sitk.sitkUInt8)
+        self.NP_seg_array.CopyInformation(self.ITK_image)
         super().initialize()
     
     def load_new_CT(self, np_DICOM_array: np.ndarray, window: int = 500, level: int = 1000, ITK_image: sitk.Image = None,**kwargs):
