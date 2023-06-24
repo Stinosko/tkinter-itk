@@ -145,8 +145,9 @@ class ITKviewerFrame(tk.Frame):
         self.slice_index = 0
         self.np_DICOM_array = np_DICOM_array
         
-        self.center_X = self.np_DICOM_array.shape[1] /2
-        self.center_Y = self.np_DICOM_array.shape[2] /2
+        self.center_X = 0
+        self.center_Y = 0
+        self.zoom = 1
 
         if window is not None:
             self.window = window
@@ -241,9 +242,9 @@ class ITKviewerFrame(tk.Frame):
 
     def get_mouse_location_dicom(self, event):
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
-        
-        x = round(self.center_X + event.x / self.zoom)
-        y = round(self.center_Y + event.y / self.zoom)
+        sp_x , sp_y = self.slice_gray_image.GetSpacing()
+        x = round(self.center_X + event.x / sp_x / self.zoom )
+        y = round(self.center_Y + event.y / sp_y / self.zoom )
         return x, y
 
     def update_label_meta_info_value(self, event):
@@ -304,8 +305,8 @@ class ITKviewerFrame(tk.Frame):
         euler2d = sitk.Euler2DTransform()
         # Why do we set the center?
 
-        
-        output_spacing = [1/self.zoom ,1 /self.zoom]
+        sp_x , sp_y = self.slice_gray_image.GetSpacing()
+        output_spacing = [1/ self.zoom ,1 /self.zoom]
         # Identity cosine matrix (arbitrary decision).
         output_direction = [1.0, 0.0, 0.0, 1.0]
         # Minimal x,y coordinates are the new origin.
@@ -313,6 +314,7 @@ class ITKviewerFrame(tk.Frame):
         # Compute grid size based on the physical size and spacing.
         output_size = [self.image_label.winfo_width(), self.image_label.winfo_height()]
 
+        self.slice_gray_image.SetOrigin((0,0))
         resampled_image = sitk.Resample(
             self.slice_gray_image,
             output_size,
