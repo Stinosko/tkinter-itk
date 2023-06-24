@@ -106,8 +106,8 @@ class SAM_segmentation:
         logging.debug(event.state - self.__previous_state)
         self.__previous_state = event.state  # remember the last keystroke state
 
-        y , x = self.parent.ITKviewer.get_mouse_location_dicom(event)
-        self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), self.layer_height, True)
+        x, y = self.parent.ITKviewer.get_mouse_location_dicom(event)
+        self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), self.layer_height)
         self.update_segmentation()
 
     def button3_press_event_image(self, event):
@@ -119,8 +119,8 @@ class SAM_segmentation:
         logging.debug(event.state - self.__previous_state)
         self.__previous_state = event.state
 
-        y , x = self.parent.ITKviewer.get_mouse_location_dicom(event)
-        self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), self.layer_height, False)
+        x, y = self.parent.ITKviewer.get_mouse_location_dicom(event)
+        self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), 0)
         self.update_segmentation()
 
     def update_segmentation(self):
@@ -133,11 +133,11 @@ class SAM_segmentation:
         points_coords = np.empty((0, 2))
         points_labels = np.empty((0,), dtype=np.uint) # 1 is add to segmentation, 0 is remove from segmentation
         add_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 1] == True)
-        for y,x in zip(add_point[0], add_point[1]):
+        for x,y in zip(add_point[0], add_point[1]):
             points_coords = np.append(points_coords, [[x, y]], axis=0)
             points_labels = np.append(points_labels, [1], axis=0)
         remove_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 2] == True)
-        for y,x in zip(remove_point[0], remove_point[1]):
+        for x,y in zip(remove_point[0], remove_point[1]):
             points_coords = np.append(points_coords, [[x, y]], axis=0)
             points_labels = np.append(points_labels, [0], axis=0)
         masks, scores, logits = self.sam_predictor.predict(point_coords=points_coords,

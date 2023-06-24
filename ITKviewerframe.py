@@ -18,7 +18,8 @@ class ITKviewerFrame(tk.Frame):
 
         self.frame = tk.Frame(self)
         self.image_label = Label(self.frame)  
-              
+        self.image_needs_updating = True
+        
         self.initialize()
         self.image_label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
         

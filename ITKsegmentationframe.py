@@ -4,6 +4,7 @@ import logging
 import numpy as np
 from PIL import Image, ImageTk
 import math
+import SimpleITK as sitk
 
 from ITKviewerframe import ITKviewerFrame
 from Utils import timer_func
@@ -19,62 +20,70 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.seg_image = ImageTk.PhotoImage(self.get_image_from_seg_array())
 
     def initialize(self):
-        self.NP_seg_array = np.empty((50,512,512, self.max_layers), dtype=bool)
-        self.seg_image = Image.fromarray(np.zeros((self.NP_seg_array.shape[1], self.NP_seg_array.shape[2], 4), dtype=np.uint8))
+        self.NP_seg_array = sitk.Image(self.ITK_image.GetSize(), sitk.sitkUInt8)
         super().initialize()
     
-    def load_new_CT(self, np_DICOM_array: np.ndarray, window: int = 500, level: int = 1000, **kwargs):
+    def load_new_CT(self, np_DICOM_array: np.ndarray, window: int = 500, level: int = 1000, ITK_image: sitk.Image = None,**kwargs):
         """placeholder"""
         self.seg_image_needs_update = True
-        self.NP_seg_array = np.empty(np_DICOM_array.shape + (self.max_layers,), dtype=bool)
+        self.NP_seg_array = sitk.Image(ITK_image.GetSize(), sitk.sitkUInt8)
         super().load_new_CT(np_DICOM_array, window, level, **kwargs)
     
     @timer_func(FPS_target=6000)
     def get_image_from_seg_array(self):
         """placeholder"""
-        image_segmentation_array = np.zeros((self.NP_seg_array.shape[1], self.NP_seg_array.shape[2], 4), dtype=np.uint8)
-        # NP_seg_array_combined = np.amax(self.NP_seg_array[self.slice_index,: , :, :], axis=-1)
-        # image_segmentation_array[NP_seg_array_combined != 0] = [255, 0, 0, 125]
+        image_segmentation_array = sitk.GetArrayFromImage(sitk.LabelToRGB(self.NP_seg_array[:,:, self.slice_index]))
 
-        NP_seg_array_combined = self.NP_seg_array[self.slice_index, :, :, :].argmax(axis=-1)
-        image_segmentation_array[self.NP_seg_array[self.slice_index, :, :, 0] == True] = [255, 0, 0, 125]
-        image_segmentation_array[NP_seg_array_combined == 1] = [0, 255, 0, 125]
-        image_segmentation_array[NP_seg_array_combined == 2] = [0, 0, 255, 125]
-        image_segmentation_array[NP_seg_array_combined == 3] = [255, 255, 0, 125]
-        image_segmentation_array[NP_seg_array_combined == 4] = [255, 0, 255, 125]
-        image_segmentation_array[NP_seg_array_combined == 5] = [0, 255, 255, 125]
-
-        return Image.fromarray(image_segmentation_array, "RGBA")
+        return Image.fromarray(image_segmentation_array, "RGB")
 
     @timer_func(FPS_target=60)
-    def zoom_at(self, img, x=0, y=0, zoom=1, interpolate=Image.LANCZOS):
+    def zoom_itk(self, *args, **kwargs):
         """ Zoom at x,y location"""
-        CT_image = img.convert('RGBA')
-        if self.seg_image_needs_update:
-            self.seg_image = self.get_image_from_seg_array()
-            self.seg_image_needs_update = False
-        result = Image.alpha_composite(CT_image, self.seg_image)
-        return super().zoom_at(result, x, y, zoom, interpolate)
+        combined = sitk.LabelOverlay(self.slice_gray_image, self.NP_seg_array[:,:, self.slice_index])
+
+        euler2d = sitk.Euler2DTransform()
+        # Why do we set the center?
+        
+        output_spacing = [1/self.zoom ,1 /self.zoom]
+        # Identity cosine matrix (arbitrary decision).
+        output_direction = [1.0, 0.0, 0.0, 1.0]
+        # Minimal x,y coordinates are the new origin.
+        output_origin = [self.center_X, self.center_Y]
+        # Compute grid size based on the physical size and spacing.
+        output_size = [self.image_label.winfo_width(), self.image_label.winfo_height()]
+
+        resampled_image = sitk.Resample(
+            combined,
+            output_size,
+            euler2d,
+            sitk.sitkNearestNeighbor,
+            output_origin,
+            output_spacing,
+            output_direction,
+        )
+        self.seg_image = resampled_image
+        return Image.fromarray( sitk.GetArrayFromImage(self.seg_image).astype(np.uint8), mode="RGB")
+        
 
     def button1_press_event_image(self, x, y):
         return 
 
 
-    def set_segmentation_point_current_slice(self, x, y, layer_height, value: bool):
-        self.NP_seg_array[self.slice_index, x, y, layer_height] = value
+    def set_segmentation_point_current_slice(self, x, y, layer_height):
+        self.NP_seg_array[x, y, self.slice_index] = layer_height
         self.seg_image_needs_update = True
         self.update_image()
 
     def set_segmentation_mask_current_slice(self, layer_height, mask: np.ndarray):
-        self.NP_seg_array[self.slice_index, :, :, layer_height] = mask
+        self.NP_seg_array[:, :, self.slice_index] = mask
         self.seg_image_needs_update = True
         self.update_image()
 
     def clear_segmentation_mask_current_slice(self, layer_height = None):
         if layer_height is None:
-            self.NP_seg_array[self.slice_index, :, :, :] = False
+            self.NP_seg_array[:, :, self.slice_index] = 0
         else:
-            self.NP_seg_array[self.slice_index, :, :, layer_height] = False
+            self.NP_seg_array[self.NP_seg_array == layer_height] = 0
         self.seg_image_needs_update = True
         self.update_image()
 
