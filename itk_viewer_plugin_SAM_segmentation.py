@@ -7,6 +7,7 @@ from segment_anything import SamPredictor, sam_model_registry
 from segment_anything.utils.transforms import ResizeLongestSide
 import os
 import torch
+import SimpleITK as sitk
 
 class SAM_segmentation:
     model_type= "vit_b"
@@ -49,6 +50,16 @@ class SAM_segmentation:
 
         self.button2 = tk.Button(self.frame, text="SAM", command=self.sam_segmentation)
         self.button2.grid(row=0, column=2, sticky=tk.E + tk.W, pady=1)
+
+        self.button3 = tk.Button(self.frame, text="Add SAM point", command=self.toggle_add, relief = tk.RAISED)
+        self.button3.grid(row=0, column=3, sticky=tk.E + tk.W, pady=1)
+
+        self.button4 = tk.Button(self.frame, text="Remove SAM point", command=self.toggle_remove, relief = tk.RAISED)
+        self.button4.grid(row=0, column=4, sticky=tk.E + tk.W, pady=1)
+
+        self.button5 = tk.Button(self.frame, text="Reset points", command=self.reset_points)
+        self.button5.grid(row=0, column=5, sticky=tk.E + tk.W, pady=1)
+
         self.parent.ITKviewer.image_label.bind('<ButtonPress-1>', self.button1_press_event_image, add = "+")
         self.parent.ITKviewer.image_label.bind('<ButtonPress-3>', self.button3_press_event_image, add = "+")
 
@@ -56,13 +67,55 @@ class SAM_segmentation:
 
         return self.frame
 
+    def reset_points(self):
+        self.parent.ITKviewer.clear_segmentation_mask_current_slice(255)
+        self.parent.ITKviewer.clear_segmentation_mask_current_slice(254)
+        self.stop_add()
+        self.stop_remove()
+        self.update_segmentation()
+
+    def toggle_remove(self):
+        if self.button4.config('relief')[-1] == 'sunken':
+            self.stop_remove()
+        else:
+            self.stop_add()
+            self.start_remove()
+    
+    def stop_remove(self):
+        self.button4.config(relief="raised")
+        self.layer_height = int(self.layer_entry.get())
+        self.remove = False
+    
+    def start_remove(self):
+        self.button4.config(relief="sunken")
+        self.layer_height = int(254)
+        self.remove = True
+
+    def toggle_add(self):
+        if self.button3.config('relief')[-1] == 'sunken':
+            self.stop_add()
+        else:
+            self.stop_remove()
+            self.start_add()
+
+    def stop_add(self):
+        self.button3.config(relief="raised")
+        self.layer_height = int(self.layer_entry.get())
+        self.add = False
+
+    def start_add(self):
+        self.button3.config(relief="sunken")
+        self.layer_height = int(255)
+        self.add = True
+
     def clear_segmentation(self):
-        self.parent.ITKviewer.clear_segmentation_mask_current_slice()
+        self.parent.ITKviewer.clear_segmentation_mask_current_slice(self.layer_height)
         self.update_segmentation()
 
     def update_layer(self):
         self.layer_height = int(self.layer_entry.get())
         logging.info("update layer to %s", self.layer_height)
+        self.stop_add()
         self.parent.focus_set()
         
 
@@ -128,25 +181,31 @@ class SAM_segmentation:
     
     def sam_segmentation(self):
         #https://github.com/facebookresearch/segment-anything/blob/main/notebooks/predictor_example.ipynb
+        self.stop_add()
+        self.stop_remove()
+        self.reset_points()
+
         image = self.parent.ITKviewer.get_image_from_HU_array(img_type = "RGB")
         self.sam_predictor.set_image(np.array(image))
-        points_coords = np.empty((0, 2))
+        points_coords = np.empty((0, 2), dtype=np.uint)
         points_labels = np.empty((0,), dtype=np.uint) # 1 is add to segmentation, 0 is remove from segmentation
-        add_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 1] == True)
-        for x,y in zip(add_point[0], add_point[1]):
+        
+        NP_segmentation = self.parent.ITKviewer.get_NP_seg_slice()
+        add_point = np.where(NP_segmentation == 255)
+        for x,y in zip(add_point[1], add_point[0]):
             points_coords = np.append(points_coords, [[x, y]], axis=0)
             points_labels = np.append(points_labels, [1], axis=0)
-        remove_point = np.where(self.parent.ITKviewer.NP_seg_array[self.parent.ITKviewer.slice_index, :, :, 2] == True)
-        for x,y in zip(remove_point[0], remove_point[1]):
+        remove_point = np.where(NP_segmentation == 254)
+        for x,y in zip(remove_point[1], remove_point[0]):
             points_coords = np.append(points_coords, [[x, y]], axis=0)
             points_labels = np.append(points_labels, [0], axis=0)
         masks, scores, logits = self.sam_predictor.predict(point_coords=points_coords,
                             point_labels=points_labels, 
                             multimask_output=True)
-        print(masks.shape)
-        print(masks.dtype)
         mask = masks[np.argmax(scores),:,:]
-        self.parent.ITKviewer.set_segmentation_mask_current_slice(3, mask)
+        mask = sitk.GetImageFromArray(mask.astype(int))
+
+        self.parent.ITKviewer.set_segmentation_mask_current_slice(self.layer_height, mask)
         self.update_segmentation()
 
 

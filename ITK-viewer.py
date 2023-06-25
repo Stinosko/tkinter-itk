@@ -127,7 +127,7 @@ class MainWindow(ttk.Frame):
         # level = int(level)
 
         self.np_CT_array = sitk.GetArrayFromImage(self.CT_ITK_images)
-        self.ITKviewer.load_new_CT(self.np_CT_array, ITK_image = self.CT_ITK_images)
+        self.ITKviewer.load_new_CT(ITK_image = self.CT_ITK_images)
 
     def load_plugins(self):
         """ Placeholder"""

@@ -14,7 +14,6 @@ class ITKviewerFrame(tk.Frame):
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
         self.ITK_image = self.get_dummy_SITK_image()
-        self.np_DICOM_array = sitk.GetArrayFromImage(self.ITK_image)
 
         self.frame = tk.Frame(self)
         self.image_label = Label(self.frame)  
@@ -124,7 +123,7 @@ class ITKviewerFrame(tk.Frame):
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
         self.image_label.configure(image=self.image)
 
-    def load_new_CT(self, np_DICOM_array: np.ndarray, window: int = 1000, level: int = 500, ITK_image: sitk.Image = None):
+    def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None):
         """placeholder"""
         # https://github.com/jonasteuwen/SimpleITK-examples/blob/master/examples/apply_lut.py
         # center = 500
@@ -144,7 +143,6 @@ class ITKviewerFrame(tk.Frame):
             self.ITK_image = ITK_image
 
         self.slice_index = 0
-        self.np_DICOM_array = np_DICOM_array
         
         self.center_X = 0
         self.center_Y = 0
@@ -178,8 +176,8 @@ class ITKviewerFrame(tk.Frame):
         self.image_needs_updating = True
         self.slice_index += 1
         CT_image_cache = None
-        if self.slice_index >= self.np_DICOM_array.shape[0]:
-            self.slice_index = self.np_DICOM_array.shape[0] - 1
+        if self.slice_index >= self.ITK_image.GetSize()[2]:
+            self.slice_index = self.ITK_image.GetSize()[2] - 1
         self.update_image()
         
     def previous_slice(self):
@@ -241,20 +239,32 @@ class ITKviewerFrame(tk.Frame):
     def button1_press_event_image(self, x,y):
         pass
 
-    def get_mouse_location_dicom(self, event):
+    def get_mouse_location_dicom(self, event = None, coords = None):
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
         sp_x , sp_y = self.slice_gray_image.GetSpacing()
-        x = round(self.center_X / sp_x + event.x / sp_x / self.zoom )
-        y = round(self.center_Y / sp_y + event.y / sp_y / self.zoom )
+        if event is not None:
+            x = round(self.center_X / sp_x + event.x / sp_x / self.zoom )
+            y = round(self.center_Y / sp_y + event.y / sp_y / self.zoom )
+        elif coords is not None:
+            x = round(self.center_X / sp_x + coords[0] / sp_x / self.zoom )
+            y = round(self.center_Y / sp_y + coords[1] / sp_y / self.zoom )
+        else:
+            logging.error("No event or coords passed")
+            return None, None
         return x, y
 
+    def get_visible_DICOM_coords(self):
+        w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
+        points = [self.get_mouse_location_dicom(coords = coords) for coords in [(0,0), (w_l, 0), (0, w_h), (w_l, w_h)]]
+        return points
+    
     def update_label_meta_info_value(self, event):
         x, y = self.get_mouse_location_dicom(event)
-        if x < 0 or x >= self.np_DICOM_array.shape[2] or y < 0 or y >= self.np_DICOM_array.shape[1]:
+        if x < 0 or x >= self.ITK_image.GetSize()[1] or y < 0 or y >= self.ITK_image.GetSize()[1]:
             logging.debug("mouse out of bounds")
             self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
             return
-        HU = self.np_DICOM_array[self.slice_index, y, x]
+        HU = self.ITK_image[x,y, self.slice_index]
         self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, HU: {HU}")
         
     def drag_event_rel_coord(self, event):
