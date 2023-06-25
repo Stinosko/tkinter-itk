@@ -49,7 +49,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
         """ Zoom at x,y location"""
         NP_seg_slice = self.ITK_seg_array[:,:, self.slice_index]
         NP_seg_slice.CopyInformation(self.slice_gray_image)
-        combined = sitk.LabelOverlay(self.slice_gray_image, NP_seg_slice)
+        combined = sitk.LabelOverlay(self.slice_gray_image, NP_seg_slice, opacity=1)
 
         euler2d = sitk.Euler2DTransform()
         # Why do we set the center?
