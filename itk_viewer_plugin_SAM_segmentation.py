@@ -19,12 +19,6 @@ class SAM_segmentation:
 
     def __init__(self, parent, **kwargs):
         self.parent = parent
-        self.layer_height = 1
-        self.sam_model = sam_model_registry[self.model_type](checkpoint=os.path.join("models", self.checkpoint))
-        
-        if torch.cuda.is_available():
-            self.sam_model.to(device = self.device) 
-        self.sam_predictor = SamPredictor(self.sam_model)
         
     def load_plugin(self):
         self.parent.segmentation_modes.append(self.__class__.__name__)
@@ -32,6 +26,12 @@ class SAM_segmentation:
     def __str__(self) -> str:
         return "ITK viewer plugin manual segmentation"
     def get_segmentation_options(self, parent):
+        self.layer_height = 1
+        self.sam_model = sam_model_registry[self.model_type](checkpoint=os.path.join("models", self.checkpoint))
+        
+        if torch.cuda.is_available():
+            self.sam_model.to(device = self.device) 
+        self.sam_predictor = SamPredictor(self.sam_model)        
         self.__previous_state = 0
         
         self.frame = tk.Frame(parent)
@@ -60,9 +60,9 @@ class SAM_segmentation:
         self.button5 = tk.Button(self.frame, text="Reset points", command=self.reset_points)
         self.button5.grid(row=0, column=5, sticky=tk.E + tk.W, pady=1)
 
-        self.parent.ITKviewer.image_label.bind('<ButtonPress-1>', self.button1_press_event_image, add = "+")
-        self.parent.ITKviewer.image_label.bind('<ButtonPress-3>', self.button3_press_event_image, add = "+")
-
+        self.bind1 = self.parent.ITKviewer.image_label.bind('<ButtonPress-1>', self.button1_press_event_image, add = "+")
+        self.bind2 = self.parent.ITKviewer.image_label.bind('<ButtonPress-3>', self.button3_press_event_image, add = "+")
+        self.frame.bind("<Destroy>", self.destroy)
 
 
         return self.frame
@@ -208,6 +208,13 @@ class SAM_segmentation:
         self.parent.ITKviewer.set_segmentation_mask_current_slice(self.layer_height, mask)
         self.update_segmentation()
 
+    def destroy(self, event=None):
+        self.parent.ITKviewer.clear_segmentation_mask_current_slice(255)
+        self.parent.ITKviewer.clear_segmentation_mask_current_slice(254)
+        print("destroy sam segmentation")
+        self.parent.ITKviewer.image_label.unbind('<ButtonPress-1>', self.bind1)
+        self.parent.ITKviewer.image_label.unbind('<ButtonPress-3>', self.bind2)
+        
 
 
 main_class=SAM_segmentation

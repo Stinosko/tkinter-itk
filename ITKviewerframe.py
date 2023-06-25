@@ -7,6 +7,24 @@ import math
 from Utils import timer_func
 import SimpleITK as sitk
 
+class PatchedLabel(tk.Label):
+    def unbind(self, sequence, funcid=None):
+        '''
+        See:
+            http://stackoverflow.com/questions/6433369/
+            deleting-and-changing-a-tkinter-event-binding-in-python
+        '''
+
+        if not funcid:
+            self.tk.call('bind', self._w, sequence, '')
+            return
+        func_callbacks = self.tk.call(
+            'bind', self._w, sequence, None).split('\n')
+        new_callbacks = [
+            l for l in func_callbacks if l[6:6 + len(funcid)] != funcid]
+        self.tk.call('bind', self._w, sequence, '\n'.join(new_callbacks))
+        self.deletecommand(funcid)
+
 class ITKviewerFrame(tk.Frame):
     """ ITK viewer Frame """
     def __init__(self, mainframe, **kwargs):
@@ -16,7 +34,7 @@ class ITKviewerFrame(tk.Frame):
         self.ITK_image = self.get_dummy_SITK_image()
 
         self.frame = tk.Frame(self)
-        self.image_label = Label(self.frame)  
+        self.image_label = PatchedLabel(self.frame)  
         self.image_needs_updating = True
         
         self.initialize()
@@ -62,7 +80,7 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<Left>', lambda event: self.zoom_out())
         self.image_label.bind('<Control-B1-Motion>', self.pan_image)
         self.image_label.bind('<Shift-B1-Motion>', self.change_window_level)
-        self.image_label.bind('<ButtonPress-1>', self.start_drag_event_image)
+        self.image_label.bind('<ButtonPress-1>', self.start_drag_event_image , add='+')
         self.image_label.bind('<ButtonRelease-1>', self.stop_drag_event_image)
         self.image_label.bind('<Motion>', self.update_label_meta_info_value)
         self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord)
@@ -221,7 +239,7 @@ class ITKviewerFrame(tk.Frame):
         self.update_image()
 
     def start_drag_event_image(self, event):
-        logging.debug("start pan")
+        logging.info("start pan")
         self.drag_mode = False
         self.start_click_location_X = event.x
         self.start_click_location_Y = event.y
