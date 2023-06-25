@@ -158,7 +158,7 @@ class SAM_segmentation:
             return
         logging.debug(event.state - self.__previous_state)
         self.__previous_state = event.state  # remember the last keystroke state
-
+        print(self.layer_height)
         x, y = self.parent.ITKviewer.get_mouse_location_dicom(event)
         self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), self.layer_height)
         self.update_segmentation()
@@ -181,27 +181,32 @@ class SAM_segmentation:
     
     def sam_segmentation(self):
         #https://github.com/facebookresearch/segment-anything/blob/main/notebooks/predictor_example.ipynb
-        self.stop_add()
-        self.stop_remove()
-        self.reset_points()
 
         image = self.parent.ITKviewer.get_image_from_HU_array(img_type = "RGB")
         self.sam_predictor.set_image(np.array(image))
-        points_coords = np.empty((0, 2), dtype=np.uint)
-        points_labels = np.empty((0,), dtype=np.uint) # 1 is add to segmentation, 0 is remove from segmentation
+        points_coords = np.empty((0, 2))
+        points_labels = np.empty((0,)) # 1 is add to segmentation, 0 is remove from segmentation
         
         NP_segmentation = self.parent.ITKviewer.get_NP_seg_slice()
         add_point = np.where(NP_segmentation == 255)
+        
         for x,y in zip(add_point[1], add_point[0]):
             points_coords = np.append(points_coords, [[x, y]], axis=0)
             points_labels = np.append(points_labels, [1], axis=0)
         remove_point = np.where(NP_segmentation == 254)
+        
         for x,y in zip(remove_point[1], remove_point[0]):
             points_coords = np.append(points_coords, [[x, y]], axis=0)
             points_labels = np.append(points_labels, [0], axis=0)
+
+        self.stop_add()
+        self.stop_remove()
+        self.reset_points()
+
         masks, scores, logits = self.sam_predictor.predict(point_coords=points_coords,
                             point_labels=points_labels, 
                             multimask_output=True)
+        
         mask = masks[np.argmax(scores),:,:]
         mask = sitk.GetImageFromArray(mask.astype(int))
 
