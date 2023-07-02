@@ -6,40 +6,27 @@ from PIL import Image, ImageTk
 import math
 from Utils import timer_func
 import SimpleITK as sitk
-
-class PatchedLabel(tk.Label):
-    def unbind(self, sequence, funcid=None):
-        '''
-        See:
-            http://stackoverflow.com/questions/6433369/
-            deleting-and-changing-a-tkinter-event-binding-in-python
-        '''
-
-        if not funcid:
-            self.tk.call('bind', self._w, sequence, '')
-            return
-        func_callbacks = self.tk.call(
-            'bind', self._w, sequence, None).split('\n')
-        new_callbacks = [
-            l for l in func_callbacks if l[6:6 + len(funcid)] != funcid]
-        self.tk.call('bind', self._w, sequence, '\n'.join(new_callbacks))
-        self.deletecommand(funcid)
+from reloading import reloading
+from Utils import PatchedLabel
 
 class ITKviewerFrame(tk.Frame):
     """ ITK viewer Frame """
-    def __init__(self, mainframe, **kwargs):
+    def __init__(self, mainframe, manager = None,  **kwargs):
         """ Initialize the ITK viewer Frame """
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
+        self.manager = manager
+
         self.ITK_image = self.get_dummy_SITK_image()
 
         self.frame = tk.Frame(self)
+        self.frame.grid(row=0, column=0, sticky="news")
+
         self.image_label = PatchedLabel(self.frame)  
         self.image_needs_updating = True
-        
+        # https://stackoverflow.com/questions/7591294/how-to-create-a-self-resizing-grid-of-buttons-in-tkinter
         self.initialize()
-        self.image_label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
-        
+        self.image_label.grid(row=0, column=0, sticky="news", padx=1, pady=1)
 
         self.image_needs_updating = True
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())  # create image object
@@ -48,7 +35,7 @@ class ITKviewerFrame(tk.Frame):
         self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
         self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
         
-        self.frame.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
+        self.frame.grid(row=0, column=0, sticky="news")
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
 
@@ -56,7 +43,7 @@ class ITKviewerFrame(tk.Frame):
 
     def initialize(self):
         """ placeholder """
-        self.zoom_delta = 1 
+        self.zoom_delta = 1
         self.zoom = 1
         self.slice_index = 0
         self.window = 1400
@@ -84,7 +71,7 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<ButtonRelease-1>', self.stop_drag_event_image)
         self.image_label.bind('<Motion>', self.update_label_meta_info_value)
         self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord)
-        self.image_label.bind('<Configure>', lambda event: self.update_image())
+        self.frame.bind('<Configure>', lambda event: self.update_image())
 
     def get_dummy_DiCOM_array(self):
         """placeholder"""
@@ -109,19 +96,24 @@ class ITKviewerFrame(tk.Frame):
             image[i*2, :,:] = number
             number += 3
         image.SetSpacing([0.5,0.75,1])
+        image.SetOrigin([6,0.15,0])
+        image.SetDirection([1,0.25,0,0,0.75,0,0,0,1])
         return image
 
     @timer_func(FPS_target=50000)
     def get_image_from_HU_array(self, img_type="RGBA"):
+        """ Return image from HU array """
+        # https://github.com/jonasteuwen/SimpleITK-examples/blob/master/examples/apply_lut.py
+        logging.debug("get_image_from_HU_array")
         minimum_hu = self.level - (self.window/2)
         maximum_hu  = self.level + (self.window/2)
         print(minimum_hu, maximum_hu)
-        self.slice_gray_image = sitk.IntensityWindowing(self.ITK_image[:,:, self.slice_index],
+        self.slice_gray_ITK_image = sitk.IntensityWindowing(self.ITK_image[:,:, self.slice_index],
                                             int(minimum_hu), int(maximum_hu),
                                             0,
                                             255)
-        self.slice_gray_image = sitk.Cast(self.slice_gray_image, sitk.sitkUInt8)
-        np_slice_gray_image = sitk.GetArrayFromImage(self.slice_gray_image)
+        self.slice_gray_ITK_image = sitk.Cast(self.slice_gray_ITK_image, sitk.sitkUInt8)
+        np_slice_gray_image = sitk.GetArrayFromImage(self.slice_gray_ITK_image)
         
         img_arr = Image.fromarray(np_slice_gray_image, "L").convert(img_type)
         return img_arr
@@ -130,11 +122,12 @@ class ITKviewerFrame(tk.Frame):
     def get_image_from_HU_array_with_zoom(self, force_update=False):
         """placeholder"""
         if self.image_needs_updating or force_update:
-            self.base_img = self.get_image_from_HU_array(img_type="RGBA")
-            logging.debug("zooming in")
-        self.base_img_zoomed = self.zoom_itk(self.base_img, x = self.center_X, y = self.center_Y, zoom= self.zoom_delta, interpolate= self.interpolate)
+            self.get_image_from_HU_array(img_type="RGBA")
+        logging.debug("zooming in")
+        self.slice_ITK_image = self.slice_gray_ITK_image
+        self.slice_PIL_image_trasformed = self.zoom_itk()
         self.image_needs_updating = False
-        return self.base_img_zoomed
+        return self.slice_PIL_image_trasformed
 
     def update_image(self):
         """placeholder"""
@@ -143,20 +136,7 @@ class ITKviewerFrame(tk.Frame):
 
     def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None):
         """placeholder"""
-        # https://github.com/jonasteuwen/SimpleITK-examples/blob/master/examples/apply_lut.py
-        # center = 500
-        # width = 1000
-
-        # lower_bound = center - (width - 1)/2
-        # upper_bound = center + (width - 1)/2
-
-        # min_max = sitk.MinimumMaximumImageFilter()
-        # min_max.Execute(ct_head)
-
-        # image = sitk.IntensityWindowing(ct_head,
-        #                                 lower_bound, upper_bound,
-        #                                 0,
-        #                                 255)
+        logging.debug("load_new_CT")
         if ITK_image is not None:
             self.ITK_image = ITK_image
 
@@ -165,7 +145,7 @@ class ITKviewerFrame(tk.Frame):
         self.center_X = 0
         self.center_Y = 0
         self.zoom = 1
-
+        self.zoom_delta = 1
         if window is not None:
             self.window = window
         if level is not None:
@@ -239,7 +219,7 @@ class ITKviewerFrame(tk.Frame):
         self.update_image()
 
     def start_drag_event_image(self, event):
-        logging.info("start pan")
+        logging.debug("start pan")
         self.drag_mode = False
         self.start_click_location_X = event.x
         self.start_click_location_Y = event.y
@@ -257,18 +237,17 @@ class ITKviewerFrame(tk.Frame):
     def button1_press_event_image(self, x,y):
         pass
 
+    @reloading
     def get_mouse_location_dicom(self, event = None, coords = None):
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
-        sp_x , sp_y = self.slice_gray_image.GetSpacing()
+        sp_x , sp_y = self.slice_gray_ITK_image.GetSpacing()
         if event is not None:
-            x = round(self.center_X / sp_x + event.x / sp_x / self.zoom )
-            y = round(self.center_Y / sp_y + event.y / sp_y / self.zoom )
+            x, y = self.ITK_image[:,:, self.slice_index].TransformPhysicalPointToIndex(self.transform.TransformPoint((event.x, event.y)))
         elif coords is not None:
-            x = round(self.center_X / sp_x + coords[0] / sp_x / self.zoom )
-            y = round(self.center_Y / sp_y + coords[1] / sp_y / self.zoom )
+            x, y = self.ITK_image[:,:, self.slice_index].TransformPhysicalPointToIndex(self.transform.TransformPoint((coords[0], coords[1])))
         else:
             logging.error("No event or coords passed")
-            return None, None
+            return None, None        
         return x, y
 
     def get_visible_DICOM_coords(self):
@@ -318,39 +297,17 @@ class ITKviewerFrame(tk.Frame):
         self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
 
         self.update_image()
-
-    def zoom_at(self, img, x = 0, y = 0, zoom = 1, interpolate = Image.LANCZOS):
-        """ Zoom at x,y location"""
-        zoom = 2 ** zoom / 2
-        w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
-        bg = self.get_empty_image(w_l, w_h)
+    
+    @reloading
+    def zoom_itk(self, *args, **kwargs):        
+        transform = sitk.Similarity2DTransform(self.slice_ITK_image.GetDimension())
+        transform.SetCenter((0,0))
+        transform.SetTranslation((self.center_X, self.center_Y))
+        transform.SetScale(1/ self.zoom)
+        self.transform = transform
+        self.slice_ITK_image_transformed = sitk.Resample(self.slice_ITK_image, transform, sitk.sitkNearestNeighbor, size =[self.image_label.winfo_width(), self.image_label.winfo_height()])
         
-        fg = img.resize((int(img.width * self.zoom), int(img.height * self.zoom)), interpolate)
-        bg.paste(fg, (int(w_l / 2 - x * self.zoom), int(w_h / 2 - y * self.zoom)))
-        return bg
-
-    def zoom_itk(self, *args, **kwargs):
-        """ Zoom at x,y location"""
-        euler2d = sitk.Euler2DTransform()
-        # Why do we set the center?
-
-        output_spacing = [1/ self.zoom ,1 /self.zoom]
-        # Identity cosine matrix (arbitrary decision).
-        output_direction = [1.0, 0.0, 0.0, 1.0]
-        # Minimal x,y coordinates are the new origin.
-        output_origin = [self.center_X, self.center_Y]
-        # Compute grid size based on the physical size and spacing.
-        output_size = [self.image_label.winfo_width(), self.image_label.winfo_height()]
-
-        self.slice_gray_image.SetOrigin((0,0))
-        resampled_image = sitk.Resample(
-            self.slice_gray_image,
-            output_size,
-            euler2d,
-            sitk.sitkNearestNeighbor,
-            output_origin,
-            output_spacing,
-            output_direction,
-        )
-        return Image.fromarray( sitk.GetArrayFromImage(resampled_image).astype(np.uint8), mode="L")
-        
+        if   self.slice_ITK_image_transformed.GetNumberOfComponentsPerPixel() == 1:
+            return Image.fromarray( sitk.GetArrayFromImage(self.slice_ITK_image_transformed).astype(np.uint8), mode="L")
+        elif self.slice_ITK_image_transformed.GetNumberOfComponentsPerPixel() == 3:
+            return Image.fromarray( sitk.GetArrayFromImage(self.slice_ITK_image_transformed).astype(np.uint8), mode="RGB")

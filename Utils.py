@@ -30,3 +30,39 @@ def timer_func(FPS_target=30):
             return result
         return wrapper
     return decorator
+
+class PatchedLabel(tk.Label):
+    def unbind(self, sequence, funcid=None):
+        '''
+        See:
+            http://stackoverflow.com/questions/6433369/
+            deleting-and-changing-a-tkinter-event-binding-in-python
+        '''
+
+        if not funcid:
+            self.tk.call('bind', self._w, sequence, '')
+            return
+        func_callbacks = self.tk.call(
+            'bind', self._w, sequence, None).split('\n')
+        new_callbacks = [
+            l for l in func_callbacks if l[6:6 + len(funcid)] != funcid]
+        self.tk.call('bind', self._w, sequence, '\n'.join(new_callbacks))
+        self.deletecommand(funcid)
+
+class PatchedFrame(tk.Frame):
+    def unbind(self, sequence, funcid=None):
+        '''
+        See:
+            http://stackoverflow.com/questions/6433369/
+            deleting-and-changing-a-tkinter-event-binding-in-python
+        '''
+
+        if not funcid:
+            self.tk.call('bind', self._w, sequence, '')
+            return
+        func_callbacks = self.tk.call(
+            'bind', self._w, sequence, None).split('\n')
+        new_callbacks = [
+            l for l in func_callbacks if l[6:6 + len(funcid)] != funcid]
+        self.tk.call('bind', self._w, sequence, '\n'.join(new_callbacks))
+        self.deletecommand(funcid)

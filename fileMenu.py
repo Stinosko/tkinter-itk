@@ -21,7 +21,6 @@ class FileMenu(tk.Menu):
     def file_opener(self):
         """ Open file callback """
         #https://docs.python.org/3/library/dialog.html#tkinter.filedialog.askdirectory
-        # Not sure mustexist = True works or it is even needed
         self.filename = filedialog.askdirectory(mustexist = True)
         logging.debug(self.filename)
         self.parent.new_image_input()

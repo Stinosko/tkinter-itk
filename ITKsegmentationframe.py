@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image, ImageTk
 import math
 import SimpleITK as sitk
+from reloading import reloading
 
 from ITKviewerframe import ITKviewerFrame
 from Utils import timer_func
@@ -44,37 +45,13 @@ class ITKsegmentationFrame(ITKviewerFrame):
 
         return Image.fromarray(image_segmentation_array, "RGB")
 
-    @timer_func(FPS_target=60)
+    
     def zoom_itk(self, *args, **kwargs):
         """ Zoom at x,y location"""
         NP_seg_slice = self.ITK_seg_array[:,:, self.slice_index]
-        NP_seg_slice.CopyInformation(self.slice_gray_image)
-        combined = sitk.LabelOverlay(self.slice_gray_image, NP_seg_slice, opacity=1)
-
-        euler2d = sitk.Euler2DTransform()
-        # Why do we set the center?
-        
-        output_spacing = [1/self.zoom ,1 /self.zoom]
-        # Identity cosine matrix (arbitrary decision).
-        output_direction = [1.0, 0.0, 0.0, 1.0]
-        # Minimal x,y coordinates are the new origin.
-        output_origin = [self.center_X, self.center_Y]
-        # Compute grid size based on the physical size and spacing.
-        output_size = [self.image_label.winfo_width(), self.image_label.winfo_height()]
-        
-        combined.SetOrigin((0,0))
-        resampled_image = sitk.Resample(
-            combined,
-            output_size,
-            euler2d,
-            sitk.sitkNearestNeighbor,
-            output_origin,
-            output_spacing,
-            output_direction,
-        )
-        self.seg_image = resampled_image
-        return Image.fromarray( sitk.GetArrayFromImage(self.seg_image).astype(np.uint8), mode="RGB")
-        
+        NP_seg_slice.CopyInformation(self.slice_gray_ITK_image)
+        self.slice_ITK_image = sitk.LabelOverlay(self.slice_gray_ITK_image, NP_seg_slice, opacity=0.8)
+        return super().zoom_itk(*args, **kwargs)        
 
     def button1_press_event_image(self, x, y):
         return 

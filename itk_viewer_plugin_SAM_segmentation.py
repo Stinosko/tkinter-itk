@@ -160,6 +160,7 @@ class SAM_segmentation:
         self.__previous_state = event.state  # remember the last keystroke state
         print(self.layer_height)
         x, y = self.parent.ITKviewer.get_mouse_location_dicom(event)
+        print(x, y)
         self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), self.layer_height)
         self.update_segmentation()
 
