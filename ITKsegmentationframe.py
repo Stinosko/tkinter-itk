@@ -53,9 +53,6 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.slice_ITK_image = sitk.LabelOverlay(self.slice_gray_ITK_image, NP_seg_slice, opacity=0.8)
         return super().zoom_itk(*args, **kwargs)        
 
-    def button1_press_event_image(self, x, y):
-        return 
-
 
     def set_segmentation_point_current_slice(self, x, y, layer_height):
         self.ITK_seg_array[x, y, self.slice_index] = layer_height
