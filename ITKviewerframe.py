@@ -16,33 +16,6 @@ class ITKviewerFrame(tk.Frame):
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
         self.manager = manager
-
-        self.ITK_image = self.get_dummy_SITK_image()
-
-        self.frame = tk.Frame(self)
-        self.frame.grid(row=0, column=0, sticky="news")
-
-        self.image_label = PatchedLabel(self.frame)  
-        self.image_needs_updating = True
-        # https://stackoverflow.com/questions/7591294/how-to-create-a-self-resizing-grid-of-buttons-in-tkinter
-        self.initialize()
-        self.image_label.grid(row=0, column=0, sticky="news", padx=1, pady=1)
-
-        self.image_needs_updating = True
-        self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())  # create image object
-        self.image_label.configure(image=self.image)
-
-        self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
-        self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
-        
-        self.frame.grid(row=0, column=0, sticky="news")
-        self.frame.rowconfigure(0, weight=1)
-        self.frame.columnconfigure(0, weight=1)
-
-
-
-    def initialize(self):
-        """ placeholder """
         self.zoom_delta = 1
         self.zoom = 1
         self.slice_index = 0
@@ -57,6 +30,29 @@ class ITKviewerFrame(tk.Frame):
 
         self.interpolate = Image.NEAREST
 
+        self.ITK_image = self.get_dummy_SITK_image()
+
+        self.frame = tk.Frame(self)
+        self.frame.grid(row=0, column=0, sticky="news")
+
+        self.image_label = PatchedLabel(self.frame)  
+        self.image_needs_updating = True
+        # https://stackoverflow.com/questions/7591294/how-to-create-a-self-resizing-grid-of-buttons-in-tkinter
+        self.initialize()
+        self.image_label.grid(row=0, column=0, sticky="news", padx=1, pady=1)
+
+        self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
+        self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
+        
+        self.image_needs_updating = True
+        self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())  # create image object
+        self.image_label.configure(image=self.image)
+
+        self.frame.rowconfigure(0, weight=1)
+        self.frame.columnconfigure(0, weight=1)
+
+    def initialize(self):
+        """ placeholder """
         self.image_label.bind('<MouseWheel>', self.__scroll)  # zoom for Windows and MacOS, but not Linux
         self.image_label.bind('<Button-5>',   self.__scroll)  # zoom for Linux, wheel scroll down
         self.image_label.bind('<Button-4>',   self.__scroll)  # zoom for Linux, wheel scroll up
@@ -71,7 +67,8 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<ButtonRelease-1>', self.stop_drag_event_image)
         self.image_label.bind('<Motion>', self.update_label_meta_info_value)
         self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord)
-        self.frame.bind('<Configure>', lambda event: self.update_image())
+        self.image_label.bind('<Configure>', lambda event: self.update_image())
+        # self.frame.bind('<Configure>', lambda event: self.update_image_frame())
 
     def get_dummy_DiCOM_array(self):
         """placeholder"""
@@ -121,8 +118,8 @@ class ITKviewerFrame(tk.Frame):
     
     def get_image_from_HU_array_with_zoom(self, force_update=False):
         """placeholder"""
-        if self.image_needs_updating or force_update:
-            self.get_image_from_HU_array(img_type="RGBA")
+        
+        self.get_image_from_HU_array(img_type="RGBA")
         logging.debug("zooming in")
         self.slice_ITK_image = self.slice_gray_ITK_image
         self.slice_PIL_image_trasformed = self.zoom_itk()
@@ -134,6 +131,26 @@ class ITKviewerFrame(tk.Frame):
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
         self.image_label.configure(image=self.image)
 
+    def update_image_frame(self):
+        """placeholder"""
+        # print("update_image_frame")
+        # self.update_nested_parents(self.image_label)
+        # # self.frame.update()
+        self.frame.rowconfigure(0, weight=1)
+        self.frame.columnconfigure(0, weight=1)
+        print("update_image_frame in ITK_image_viewer")
+        self.update_image()
+
+    def update_nested_parents(self, widget, parents=[]):
+        """placeholder"""
+        widget.update()
+        parents = parents + [widget.winfo_parent()]
+        if widget.winfo_parent() != ".":
+            self.update_nested_parents(widget._nametowidget(widget.winfo_parent()), parents)
+        else:
+            for parent in parents:
+                widget._nametowidget(parent).update()
+    
     def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None):
         """placeholder"""
         logging.debug("load_new_CT")
@@ -305,7 +322,9 @@ class ITKviewerFrame(tk.Frame):
         transform.SetTranslation((self.center_X, self.center_Y))
         transform.SetScale(1/ self.zoom)
         self.transform = transform
-        self.slice_ITK_image_transformed = sitk.Resample(self.slice_ITK_image, transform, sitk.sitkNearestNeighbor, size =[self.image_label.winfo_width(), self.image_label.winfo_height()])
+        logging.debug([self.image_label.winfo_width(), self.image_label.winfo_height()])
+        size = [self.image_label.winfo_width(), self.image_label.winfo_height()]
+        self.slice_ITK_image_transformed = sitk.Resample(self.slice_ITK_image, transform, sitk.sitkNearestNeighbor, size =size)
         
         if   self.slice_ITK_image_transformed.GetNumberOfComponentsPerPixel() == 1:
             return Image.fromarray( sitk.GetArrayFromImage(self.slice_ITK_image_transformed).astype(np.uint8), mode="L")

@@ -11,7 +11,7 @@ from helpMenu import HelpMenu
 from ITKsegmentationframe import ITKsegmentationFrame
 from ITKviewerframe import ITKviewerFrame
 from topbar import Topbar
-
+from ImagesFrameManager import imagesFrameManager
 #import progressbar
 
 
@@ -85,13 +85,15 @@ class MainWindow(ttk.Frame):
         self.label2 = tk.Label(self.master, text="Placeholder left\n\n\n\nPlaceholder left", bg="blue")
         self.label2.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
 
-        self.ITKviewer = ITKsegmentationFrame(self.mainframe, bg = "yellow") # create ITK Frame
+        self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = [[0,[1,2,3]]], bg = "yellow") # create ITK Frame
+        # self.ITKviewer = ITKviewerFrame(self.mainframe, bg = "yellow") # create ITK Frame
         self.ITKviewer.grid(row=1, column=1, columnspan = 2, sticky= tk.N + tk.S + tk.E + tk.W)  # show ITK 
         
-        self.master.rowconfigure(1, weight=1)
-        self.master.columnconfigure(1, weight=1)
         self.ITKviewer.rowconfigure(0, weight=1)
         self.ITKviewer.columnconfigure(0, weight=1)
+        self.master.rowconfigure(1, weight=1)
+        self.master.columnconfigure(1, weight=1)
+
 
         self.label3 = tk.Label(self.master, text="Placeholder bottom", bg="green")
         self.label3.grid(row=2, column=0, columnspan = 3, pady=1, sticky = tk.W + tk.E)
