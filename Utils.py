@@ -66,3 +66,20 @@ class PatchedFrame(tk.Frame):
             l for l in func_callbacks if l[6:6 + len(funcid)] != funcid]
         self.tk.call('bind', self._w, sequence, '\n'.join(new_callbacks))
         self.deletecommand(funcid)
+
+# https://stackoverflow.com/questions/43731784/tkinter-canvas-scrollbar-with-grid
+class HoverButton(tk.Button):
+    """ Button that changes color to activebackground when mouse is over it. """
+
+    def __init__(self, master, **kw):
+        super().__init__(master=master, **kw)
+        self.default_Background = self.cget('background')
+        self.hover_Background = self.cget('activebackground')
+        self.bind('<Enter>', self.on_enter)
+        self.bind('<Leave>', self.on_leave)
+
+    def on_enter(self, e):
+        self.config(background=self.hover_Background)
+
+    def on_leave(self, e):
+        self.config(background=self.default_Background)

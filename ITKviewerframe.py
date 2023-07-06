@@ -68,7 +68,11 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<Motion>', self.update_label_meta_info_value)
         self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord)
         self.image_label.bind('<Configure>', lambda event: self.update_image())
+        self.image_label.bind('<Leave>', self.on_leave)
         # self.frame.bind('<Configure>', lambda event: self.update_image_frame())
+
+    def on_leave(self, event):
+        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
 
     def get_dummy_DiCOM_array(self):
         """placeholder"""
