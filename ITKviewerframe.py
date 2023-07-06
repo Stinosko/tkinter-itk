@@ -32,14 +32,14 @@ class ITKviewerFrame(tk.Frame):
 
         self.ITK_image = self.get_dummy_SITK_image()
 
-        self.frame = tk.Frame(self)
+        self.frame = self
         self.frame.grid(row=0, column=0, sticky="news")
 
         self.image_label = PatchedLabel(self.frame)  
         self.image_needs_updating = True
         # https://stackoverflow.com/questions/7591294/how-to-create-a-self-resizing-grid-of-buttons-in-tkinter
         self.initialize()
-        self.image_label.grid(row=0, column=0, sticky="news", padx=1, pady=1)
+        self.image_label.grid(row=0, column=0, sticky="news", padx=5, pady=5)
 
         self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
         self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
