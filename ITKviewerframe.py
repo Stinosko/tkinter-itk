@@ -258,7 +258,7 @@ class ITKviewerFrame(tk.Frame):
     def button1_press_event_image(self, x,y):
         pass
 
-    @reloading
+    
     def get_mouse_location_dicom(self, event = None, coords = None):
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
         sp_x , sp_y = self.slice_gray_ITK_image.GetSpacing()
@@ -319,7 +319,6 @@ class ITKviewerFrame(tk.Frame):
 
         self.update_image()
     
-    @reloading
     def zoom_itk(self, *args, **kwargs):        
         transform = sitk.Similarity2DTransform(self.slice_ITK_image.GetDimension())
         transform.SetCenter((0,0))

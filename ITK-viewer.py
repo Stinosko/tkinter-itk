@@ -12,6 +12,7 @@ from ITKsegmentationframe import ITKsegmentationFrame
 from ITKviewerframe import ITKviewerFrame
 from topbar import Topbar
 from ImagesFrameManager import imagesFrameManager
+from DICOM_serie_manager import DICOM_serie_manager
 #import progressbar
 
 
@@ -82,12 +83,12 @@ class MainWindow(ttk.Frame):
         self.label1 = Topbar(self, self.master)
         self.label1.grid(row=0, column=0, columnspan = 3, pady=5, sticky = tk.W + tk.E)
 
-        self.label2 = tk.Label(self.master, text="Placeholder left\n\n\n\nPlaceholder left", bg="blue")
-        self.label2.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
+        self.DICOM_serie_manager = DICOM_serie_manager(self.master, bg="blue")
+        self.DICOM_serie_manager.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
 
-        # self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = [[0,[1,2,3],4]], bg = "yellow") # create ITK Frame
+        self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = [[0,[1,2,3],4]], bg = "yellow") # create ITK Frame
         # self.ITKviewer = ITKviewerFrame(self.mainframe, bg = "red") # create ITK Frame
-        self.ITKviewer = ITKsegmentationFrame(self.mainframe, bg = "red") # create ITK Frame
+        # self.ITKviewer = ITKsegmentationFrame(self.mainframe, bg = "red") # create ITK Frame
         self.ITKviewer.grid(row=1, column=1, columnspan = 2, sticky= tk.N + tk.S + tk.E + tk.W)  # show ITK 
         
         self.ITKviewer.rowconfigure(0, weight=1)
@@ -107,30 +108,8 @@ class MainWindow(ttk.Frame):
         logging.info('Importing patient data')
         DICOM_DIR = self.filemenu.get_filename()
         logging.debug(f'Importing patient data: {DICOM_DIR}')
-
-        self.reader = sitk.ImageSeriesReader()
-        
-        dicom_names = self.reader.GetGDCMSeriesFileNames(DICOM_DIR)
-        self.reader.SetFileNames(dicom_names)
-        
-        #Needed to preload meta data?????
-        #self.reader.LoadPrivateTagsOn()
-        logging.debug(self.reader)
-        self.reader.MetaDataDictionaryArrayUpdateOn()
-
-        self.CT_ITK_images = self.reader.Execute()
-        
-        if self.reader.GetMetaData(slice = 0, key ="0008|0060") != "CT":
-            logging.error("Not a CT image")
-        # window = self.reader.GetMetaData(slice = 0, key ="0028|1050")
-        # level = self.reader.GetMetaData(slice = 0, key ="0028|1051")
-
-        # logging.info(f'Window: {window}, level: {level}')
-        # window = int(window)
-        # level = int(level)
-
-        self.np_CT_array = sitk.GetArrayFromImage(self.CT_ITK_images)
-        self.ITKviewer.load_new_CT(ITK_image = self.CT_ITK_images)
+        self.DICOM_serie_manager.load_DICOM_serie(DICOM_DIR)
+        self.DICOM_serie_manager.reset_preview_frames()
 
     def load_plugins(self):
         """ Placeholder"""

@@ -46,7 +46,8 @@ def clone_widget(widget, master=None):
 
     return cloned
 
-grid = 16
+
+# inspiration https://github.com/TechDudie/tkinterDnD/blob/main/tkinterDnD.py
 def make_draggable(widget):
   widget.bind("<Button-1>", on_drag_start)
   widget.bind("<B1-Motion>", on_drag_motion)
@@ -65,10 +66,16 @@ def on_drag_motion(event):
   widget.place(x=x, y=y)
 
 def on_drag_release(event):
-  global widget
-  x = event.widget.winfo_x() + event.x - widget._drag_start_x
-  y = event.widget.winfo_y() + event.y - widget._drag_start_y
-  widget.place(x=x, y=y)
+  global widget, tk
+  x = event.widget.winfo_x() + event.x + tk.winfo_rootx()
+  y = event.widget.winfo_y() + event.y + tk.winfo_rooty()
+  widget.place_forget()
+
+  tk.update_idletasks()
+  print(tk.winfo_containing(x,y))
+  widget._nametowidget(tk.winfo_containing(x,y, displayof=".")).configure(bg = "blue")
+
+  widget.destroy()
   
 def set_grid(measure):
   global grid
@@ -93,4 +100,19 @@ label = tkinter.Label(frame, text="World", bg="green", wraplength=64, justify=tk
 label.config(highlightbackground="black")
 label.grid(row=0,column=0)
 # make_draggable_component(label)
+
+grid = tkinter.Frame(tk)
+
+# create label grid of 16x16
+for i in range(16):
+    for j in range(16):
+        frame = tkinter.Frame(grid, bd=4, height=32, width=32, bg="white")
+        frame.grid(row=i+1,column=j)
+        label = tkinter.Label(frame, text="Hello", bg="white", wraplength=32, justify=tkinter.CENTER)
+        label.config(highlightbackground="black")
+        label.grid(row=0,column=0)
+        # make_draggable_component(label)
+        # label
+grid.grid(row=1,column=0, columnspan=16)
+
 tk.mainloop() 
