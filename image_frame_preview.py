@@ -101,8 +101,8 @@ class image_frame_preview(PatchedFrame):
         self.drag_widget._drag_start_y = event.y
     
     def on_drag_motion(self, event):
-        x = event.widget.winfo_x() + event.x - self.drag_widget._drag_start_x
-        y = event.widget.winfo_y() + event.y - self.drag_widget._drag_start_y
+        x = event.x_root - self._nametowidget(".").winfo_rootx() - int(self.drag_widget.winfo_width() / 2)
+        y = event.y_root - self._nametowidget(".").winfo_rooty() + 2
         self.drag_widget.place(x=x, y=y)
 
     def on_drag_release(self, event):
