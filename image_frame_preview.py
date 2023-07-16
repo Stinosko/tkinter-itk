@@ -108,8 +108,8 @@ class image_frame_preview(PatchedFrame):
         
 
     def on_drag_release(self, event):
-        x = event.widget.winfo_x() + event.x + self._nametowidget(".").winfo_rootx()
-        y = event.widget.winfo_y() + event.y + self._nametowidget(".").winfo_rooty()
+        x = event.x_root
+        y = event.y_root
         self.drag_widget.place_forget()
 
         self._nametowidget(".").update_idletasks()

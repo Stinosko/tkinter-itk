@@ -15,6 +15,14 @@ example = [
     5,
 ]
 
+example_frame_list = [
+    [[ITKviewerFrame,
+      ITKviewerFrame],ITKviewerFrame,],
+    ITKviewerFrame,
+    ITKviewerFrame,
+]
+
+
 def find_id_in_nested_list(mylist, char):
     for i, sub_item in enumerate(mylist):
         if isinstance(sub_item, list): 
@@ -52,7 +60,7 @@ def create_image_viewers_from_nested_list(mainframe, nested_list, horizontal= Tr
             result_sublist = create_image_viewers_from_nested_list(frame, sub_item, horizontal= not horizontal, position = i, FrameManager = FrameManager, **kwargs)
             result += [result_sublist]
         else:
-            image_frame = ITKviewerFrame(frame, FrameManager=FrameManager, **kwargs)
+            image_frame = sub_item(frame, FrameManager=FrameManager, **kwargs)
             image_frame.grid_propagate(0) #not essential when grid is used correctly else the frames will grow indefinitely or "attacking" each other
             if horizontal:
                 image_frame.grid(row=0, column=i, sticky="news", padx=1, pady=1)
