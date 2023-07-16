@@ -11,11 +11,11 @@ from Utils import PatchedLabel
 
 class ITKviewerFrame(tk.Frame):
     """ ITK viewer Frame """
-    def __init__(self, mainframe, manager = None,  **kwargs):
+    def __init__(self, mainframe, FrameManager = None,  **kwargs):
         """ Initialize the ITK viewer Frame """
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
-        self.manager = manager
+        self.FrameManager = FrameManager
         self.zoom_delta = 1
         self.zoom = 1
         self.slice_index = 0
@@ -70,6 +70,15 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<Configure>', lambda event: self.update_image())
         self.image_label.bind('<Leave>', self.on_leave)
         # self.frame.bind('<Configure>', lambda event: self.update_image_frame())
+        self.bind('<FocusIn>', self.on_focus_in)
+        # self.bind('<FocusOut>', self.on_focus_out)
+
+    def on_focus_in(self, event):
+        self.configure(bg="red")
+        self.FrameManager.set_active_widget(self)
+
+    def on_focus_out(self, event = None):
+        self.configure(bg="yellow")
 
     def on_leave(self, event):
         self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
@@ -177,6 +186,7 @@ class ITKviewerFrame(tk.Frame):
 
     def __scroll(self, event):
         logging.debug("Scrolling")
+        self.focus_set()
         self.image_needs_updating = True
         if event.delta == -120:  # scroll down, smaller
             self.previous_slice()
@@ -185,6 +195,7 @@ class ITKviewerFrame(tk.Frame):
        
     def __zoom(self, event):
         logging.debug("zooming")
+        self.focus_set()
         if event.delta == -120:
             self.zoom_out()
         if event.delta == 120:
@@ -225,7 +236,8 @@ class ITKviewerFrame(tk.Frame):
         self.zoom = 2 ** self.zoom_delta /2
 
     def pan_image(self, event):
-        " "
+        logging.debug("panning")
+        self.focus_set()
         self.mainframe.update_idletasks()
         if (self.start_click_location_X == event.x or self.start_click_location_X == None) and (self.start_click_location_Y == event.y or self.start_click_location_Y == None):
             logging.error("pan invalid")
@@ -241,6 +253,7 @@ class ITKviewerFrame(tk.Frame):
 
     def start_drag_event_image(self, event):
         logging.debug("start pan")
+        self.focus_set()
         self.drag_mode = False
         self.start_click_location_X = event.x
         self.start_click_location_Y = event.y
@@ -287,6 +300,7 @@ class ITKviewerFrame(tk.Frame):
         
     def drag_event_rel_coord(self, event):
         logging.debug("dragging")
+        self.focus_set()
         self.drag_mode = True
         delta_x, delta_y = self.B1_drag_event(event)
         return delta_x, delta_y
@@ -305,6 +319,8 @@ class ITKviewerFrame(tk.Frame):
         return
 
     def change_window_level(self, event):
+        logging.debug("windowing")
+        self.focus_set()
         self.image_needs_updating = True
         self.mainframe.update_idletasks()
         if (self.start_click_location_X == event.x or self.start_click_location_X == None) and (self.start_click_location_Y == event.y or self.start_click_location_Y == None):

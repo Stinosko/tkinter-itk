@@ -38,7 +38,7 @@ def create_concept_from_nested_list(mainframe, nested_list, horizontal= True, **
             result += [1]
     return result
 
-def create_image_viewers_from_nested_list(mainframe, nested_list, horizontal= True, position = 0, **kwargs):
+def create_image_viewers_from_nested_list(mainframe, nested_list, horizontal= True, position = 0, FrameManager = None, **kwargs):
     """placeholder"""
     frame = PatchedFrame(mainframe, **kwargs)
     if horizontal:
@@ -49,10 +49,10 @@ def create_image_viewers_from_nested_list(mainframe, nested_list, horizontal= Tr
     result = []
     for i, sub_item in enumerate(nested_list):
         if isinstance(sub_item, list): 
-            result_sublist = create_image_viewers_from_nested_list(frame, sub_item, horizontal= not horizontal, position = i, **kwargs)
+            result_sublist = create_image_viewers_from_nested_list(frame, sub_item, horizontal= not horizontal, position = i, FrameManager = FrameManager, **kwargs)
             result += [result_sublist]
         else:
-            image_frame = ITKviewerFrame(frame, mainframe, **kwargs)
+            image_frame = ITKviewerFrame(frame, FrameManager=FrameManager, **kwargs)
             image_frame.grid_propagate(0) #not essential when grid is used correctly else the frames will grow indefinitely or "attacking" each other
             if horizontal:
                 image_frame.grid(row=0, column=i, sticky="news", padx=1, pady=1)
@@ -111,7 +111,7 @@ class imagesFrameManager(PatchedFrame):
         super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
         
-        self.frame = PatchedFrame(self)
+        self.frame = self
         self.frame.grid(row=0, column=0, sticky= tk.N + tk.S + tk.E + tk.W)
         self.frame.bind('<Configure>', lambda event: self.update_configure())
 
@@ -120,14 +120,20 @@ class imagesFrameManager(PatchedFrame):
         # self.frame.columnconfigure(tuple([n for n in range(len(image_label_layout[0]))]), weight=1)
         self.frame.columnconfigure(0, weight=1)
 
-        self.images_labels = create_image_viewers_from_nested_list(self.frame, image_label_layout, **kwargs)
-
+        self.images_labels = create_image_viewers_from_nested_list(self.frame, image_label_layout, FrameManager = self,**kwargs)
+        self.active_widget = None
 
         self.active_image_x = 0
         self.active_image_y = 0
 
         self.series_IDs = None
     
+    def set_active_widget(self, widget):
+        """placeholder"""
+        if self.active_widget is not None:
+            self.active_widget.on_focus_out()
+        self.active_widget = widget
+
     def set_ImageSeries(self, data_directory: str = "", series_IDs: sitk.ImageSeriesReader = None):
         """placeholder"""
         self.series_IDs = series_IDs
