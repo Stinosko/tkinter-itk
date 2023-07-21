@@ -67,7 +67,7 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<ButtonRelease-1>', self.stop_drag_event_image)
         self.image_label.bind('<Motion>', self.update_label_meta_info_value)
         self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord)
-        self.image_label.bind('<Configure>', lambda event: self.update_image())
+        # self.image_label.bind('<Configure>', lambda event: self.update_image())
         self.image_label.bind('<Leave>', self.on_leave)
         # self.frame.bind('<Configure>', lambda event: self.update_image_frame())
         self.bind('<FocusIn>', self.on_focus_in)
@@ -117,11 +117,19 @@ class ITKviewerFrame(tk.Frame):
         logging.debug("get_image_from_HU_array")
         minimum_hu = self.level - (self.window/2)
         maximum_hu  = self.level + (self.window/2)
-        print(minimum_hu, maximum_hu)
+
+        max_output_value = 255
+        min_output_value = 0
+
+        pixel_type = self.ITK_image.GetPixelIDValue()
+        if (pixel_type == sitk.sitkUInt8 or pixel_type == sitk.sitkUInt16 or pixel_type == sitk.sitkUInt32 or pixel_type == sitk.sitkUInt64) and minimum_hu < 0:
+            min_output_value = int( abs(minimum_hu) / (maximum_hu - minimum_hu) )
+            minimum_hu = 0
+        
         self.slice_gray_ITK_image = sitk.IntensityWindowing(self.ITK_image[:,:, self.slice_index],
                                             int(minimum_hu), int(maximum_hu),
-                                            0,
-                                            255)
+                                            min_output_value,
+                                            max_output_value)
         self.slice_gray_ITK_image = sitk.Cast(self.slice_gray_ITK_image, sitk.sitkUInt8)
         np_slice_gray_image = sitk.GetArrayFromImage(self.slice_gray_ITK_image)
         
@@ -291,7 +299,7 @@ class ITKviewerFrame(tk.Frame):
     
     def update_label_meta_info_value(self, event):
         x, y = self.get_mouse_location_dicom(event)
-        if x < 0 or x >= self.ITK_image.GetSize()[1] or y < 0 or y >= self.ITK_image.GetSize()[1]:
+        if x < 0 or x >= self.ITK_image.GetSize()[0] or y < 0 or y >= self.ITK_image.GetSize()[1]:
             logging.debug("mouse out of bounds")
             self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
             return

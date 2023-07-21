@@ -40,7 +40,7 @@ class SAM_segmentation:
         self.layer_frame = tk.Frame(self.frame)
         self.layer_label = tk.Label(self.layer_frame, text="Layer")
         self.layer_label.grid(row=0, column=0, sticky=tk.E + tk.W, pady=1)
-        self.layer_entry = Spinbox(self.layer_frame, from_=1, to=self.parent.ITKviewer.max_layers, width=1, command=self.update_layer)
+        self.layer_entry = Spinbox(self.layer_frame, from_=1, to=self.parent.ITKviewer.active_widget.max_layers, width=1, command=self.update_layer)
         self.layer_entry.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1)
         self.layer_entry.bind('<Return>', lambda event: self.update_layer())
         self.layer_frame.grid(row=0, column=0, sticky=tk.E + tk.W, pady=1)
@@ -60,16 +60,16 @@ class SAM_segmentation:
         self.button5 = tk.Button(self.frame, text="Reset points", command=self.reset_points)
         self.button5.grid(row=0, column=5, sticky=tk.E + tk.W, pady=1)
 
-        self.bind1 = self.parent.ITKviewer.image_label.bind('<ButtonPress-1>', self.button1_press_event_image, add = "+")
-        self.bind2 = self.parent.ITKviewer.image_label.bind('<ButtonPress-3>', self.button3_press_event_image, add = "+")
+        self.bind1 = self.parent.ITKviewer.active_widget.image_label.bind('<ButtonPress-1>', self.button1_press_event_image, add = "+")
+        self.bind2 = self.parent.ITKviewer.active_widget.image_label.bind('<ButtonPress-3>', self.button3_press_event_image, add = "+")
         self.frame.bind("<Destroy>", self.destroy)
 
 
         return self.frame
 
     def reset_points(self):
-        self.parent.ITKviewer.clear_segmentation_mask_current_slice(255)
-        self.parent.ITKviewer.clear_segmentation_mask_current_slice(254)
+        self.parent.ITKviewer.active_widget.clear_segmentation_mask_current_slice(255)
+        self.parent.ITKviewer.active_widget.clear_segmentation_mask_current_slice(254)
         self.stop_add()
         self.stop_remove()
         self.update_segmentation()
@@ -109,7 +109,7 @@ class SAM_segmentation:
         self.add = True
 
     def clear_segmentation(self):
-        self.parent.ITKviewer.clear_segmentation_mask_current_slice(self.layer_height)
+        self.parent.ITKviewer.active_widget.clear_segmentation_mask_current_slice(self.layer_height)
         self.update_segmentation()
 
     def update_layer(self):
@@ -159,9 +159,9 @@ class SAM_segmentation:
         logging.debug(event.state - self.__previous_state)
         self.__previous_state = event.state  # remember the last keystroke state
         print(self.layer_height)
-        x, y = self.parent.ITKviewer.get_mouse_location_dicom(event)
+        x, y = self.parent.ITKviewer.active_widget.get_mouse_location_dicom(event)
         print(x, y)
-        self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), self.layer_height)
+        self.parent.ITKviewer.active_widget.set_segmentation_point_current_slice(int(x), int(y), self.layer_height)
         self.update_segmentation()
 
     def button3_press_event_image(self, event):
@@ -173,22 +173,22 @@ class SAM_segmentation:
         logging.debug(event.state - self.__previous_state)
         self.__previous_state = event.state
 
-        x, y = self.parent.ITKviewer.get_mouse_location_dicom(event)
-        self.parent.ITKviewer.set_segmentation_point_current_slice(int(x), int(y), 0)
+        x, y = self.parent.ITKviewer.active_widget.get_mouse_location_dicom(event)
+        self.parent.ITKviewer.active_widget.set_segmentation_point_current_slice(int(x), int(y), 0)
         self.update_segmentation()
 
     def update_segmentation(self):
-        self.parent.ITKviewer.update_image()
+        self.parent.ITKviewer.active_widget.update_image()
     
     def sam_segmentation(self):
         #https://github.com/facebookresearch/segment-anything/blob/main/notebooks/predictor_example.ipynb
 
-        image = self.parent.ITKviewer.get_image_from_HU_array(img_type = "RGB")
+        image = self.parent.ITKviewer.active_widget.get_image_from_HU_array(img_type = "RGB")
         self.sam_predictor.set_image(np.array(image))
         points_coords = np.empty((0, 2))
         points_labels = np.empty((0,)) # 1 is add to segmentation, 0 is remove from segmentation
         
-        NP_segmentation = self.parent.ITKviewer.get_NP_seg_slice()
+        NP_segmentation = self.parent.ITKviewer.active_widget.get_NP_seg_slice()
         add_point = np.where(NP_segmentation == 255)
         
         for x,y in zip(add_point[1], add_point[0]):
@@ -211,15 +211,15 @@ class SAM_segmentation:
         mask = masks[np.argmax(scores),:,:]
         mask = sitk.GetImageFromArray(mask.astype(int))
 
-        self.parent.ITKviewer.set_segmentation_mask_current_slice(self.layer_height, mask)
+        self.parent.ITKviewer.active_widget.set_segmentation_mask_current_slice(self.layer_height, mask)
         self.update_segmentation()
 
     def destroy(self, event=None):
-        self.parent.ITKviewer.clear_segmentation_mask_current_slice(255)
-        self.parent.ITKviewer.clear_segmentation_mask_current_slice(254)
+        self.parent.ITKviewer.active_widget.clear_segmentation_mask_current_slice(255)
+        self.parent.ITKviewer.active_widget.clear_segmentation_mask_current_slice(254)
         print("destroy sam segmentation")
-        self.parent.ITKviewer.image_label.unbind('<ButtonPress-1>', self.bind1)
-        self.parent.ITKviewer.image_label.unbind('<ButtonPress-3>', self.bind2)
+        self.parent.ITKviewer.active_widget.image_label.unbind('<ButtonPress-1>', self.bind1)
+        self.parent.ITKviewer.active_widget.image_label.unbind('<ButtonPress-3>', self.bind2)
         
 
 

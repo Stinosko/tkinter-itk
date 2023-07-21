@@ -119,4 +119,5 @@ class image_frame_preview(PatchedFrame):
         itkviewerframe = self._nametowidget(itkviewerframe)
         ITK_image = self.drag_widget.reader.Execute()
         ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
+        ITK_image.SetOrigin((0,0,0))
         itkviewerframe.load_new_CT(ITK_image= ITK_image)

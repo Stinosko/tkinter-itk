@@ -104,14 +104,21 @@ def update_ITKviewerFrames_from_nested_list(nested_list, horizontal= True, **kwa
         if isinstance(sub_item, list):
             update_ITKviewerFrames_from_nested_list(sub_item, horizontal= not horizontal, **kwargs)
         else:
-            sub_item.columnconfigure(0, weight=1)
-            sub_item.rowconfigure(0, weight=1)
-            sub_item.frame.columnconfigure(0, weight=1)
-            sub_item.frame.rowconfigure(0, weight=1)
-            sub_item.image_label.columnconfigure(0, weight=1)
-            sub_item.image_label.rowconfigure(0, weight=1)
+            # sub_item.columnconfigure(0, weight=1)
+            # sub_item.rowconfigure(0, weight=1)
+            # sub_item.frame.columnconfigure(0, weight=1)
+            # sub_item.frame.rowconfigure(0, weight=1)
+            # sub_item.image_label.columnconfigure(0, weight=1)
+            # sub_item.image_label.rowconfigure(0, weight=1)
             sub_item.update_image()
         
+def get_first_frame_from_nested_list(nested_list):
+    for sub_item in nested_list[1:]:
+        if isinstance(sub_item, list):
+            return get_first_frame_from_nested_list(sub_item)
+        else:
+            return sub_item
+
 
 class imagesFrameManager(PatchedFrame):
     def __init__(self, mainframe, image_label_layout: list = [0], **kwargs):
@@ -129,10 +136,9 @@ class imagesFrameManager(PatchedFrame):
         self.frame.columnconfigure(0, weight=1)
 
         self.images_labels = create_image_viewers_from_nested_list(self.frame, image_label_layout, FrameManager = self,**kwargs)
-        self.active_widget = None
-
-        self.active_image_x = 0
-        self.active_image_y = 0
+        self.active_widget = get_first_frame_from_nested_list(self.images_labels)
+        self.active_widget.focus_set()
+        # self.active_widget.on_focus_in()
 
         self.series_IDs = None
     
@@ -158,6 +164,7 @@ class imagesFrameManager(PatchedFrame):
     def update_configure(self):
         self.frame.update_idletasks()
         self.frame.update()
-        update_image_viewer_frames_from_nested_list(self.images_labels)
+        # update_image_viewer_frames_from_nested_list(self.images_labels)
         update_ITKviewerFrames_from_nested_list(self.images_labels)
+        self.active_widget.focus_set()
         """placeholder"""
