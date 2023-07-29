@@ -7,6 +7,7 @@ import math
 from Utils import timer_func, PatchedFrame
 import SimpleITK as sitk
 from ITKviewerframe import ITKviewerFrame
+from ITKsegmentationframe import ITKsegmentationFrame
 
 example = [
     [[1,
@@ -16,7 +17,7 @@ example = [
 ]
 
 example_frame_list = [
-    [[ITKviewerFrame,
+    [[ITKsegmentationFrame,
       ITKviewerFrame],ITKviewerFrame,],
     ITKviewerFrame,
     ITKviewerFrame,

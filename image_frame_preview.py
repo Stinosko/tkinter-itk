@@ -114,7 +114,8 @@ class image_frame_preview(PatchedFrame):
 
         self._nametowidget(".").update_idletasks()
         target_widget = self._nametowidget(".").winfo_containing(x,y)
-        itkviewerframe = re.search("(.*)(itkviewerframe)(\\d+)?", str(target_widget)).group()
+        
+        itkviewerframe = re.search("(.*)(itkviewerframe|itksegmentationframe)(\\d+)?", str(target_widget)).group()
         print(itkviewerframe)
         itkviewerframe = self._nametowidget(itkviewerframe)
         ITK_image = self.drag_widget.reader.Execute()
