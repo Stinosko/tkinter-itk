@@ -9,12 +9,14 @@ import SimpleITK as sitk
 from reloading import reloading
 from Utils import PatchedLabel
 
-class ITKviewerFrame(tk.Frame):
+class ITKviewerFrame(tk.Frame):    
     """ ITK viewer Frame """
-    def __init__(self, mainframe, FrameManager = None,  **kwargs):
+    custom_options = ("FrameManager",)
+
+    def __init__(self, parent, FrameManager = None,  **kwargs):
         """ Initialize the ITK viewer Frame """
-        super().__init__(mainframe, **kwargs)
-        self.mainframe = mainframe
+        super().__init__(parent, **kwargs)
+        self.parent = parent
         self.FrameManager = FrameManager
         self.zoom_delta = 1
         self.zoom = 1
@@ -246,7 +248,7 @@ class ITKviewerFrame(tk.Frame):
     def pan_image(self, event):
         logging.debug("panning")
         self.focus_set()
-        self.mainframe.update_idletasks()
+        self.parent.update_idletasks()
         if (self.start_click_location_X == event.x or self.start_click_location_X == None) and (self.start_click_location_Y == event.y or self.start_click_location_Y == None):
             logging.error("pan invalid")
             return
@@ -330,7 +332,7 @@ class ITKviewerFrame(tk.Frame):
         logging.debug("windowing")
         self.focus_set()
         self.image_needs_updating = True
-        self.mainframe.update_idletasks()
+        self.parent.update_idletasks()
         if (self.start_click_location_X == event.x or self.start_click_location_X == None) and (self.start_click_location_Y == event.y or self.start_click_location_Y == None):
             logging.error(" windowing invalid")
             return

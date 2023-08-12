@@ -97,10 +97,10 @@ class HoverButton(tk.Button):
 
 def create_DICOM_files():
     # Create an empty 3D SimpleITK image
-    image = sitk.Image([128, 128, 128], sitk.sitkUInt8)
+    image = sitk.Image([128, 50, 180], sitk.sitkUInt8)
 
     # Get the number of slices
-    num_slices = image.GetSize()[2]
+    num_slices = image.GetSize()[0]
 
     # Create an empty list to store the modified slices
     slices_with_numbers = []
@@ -113,7 +113,7 @@ def create_DICOM_files():
         np_array[i, :, :] = cv2.normalize(np_array[i, :, :], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
         
         # Write the slice number on the slice
-        cv2.putText(np_array[i, :, :], str(i), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        cv2.putText(np_array[i, :, :], f"slice: {i}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
     new_img = sitk.GetImageFromArray(np_array)
     new_img.SetSpacing([2.5, 3.5, 4.5])
@@ -137,7 +137,8 @@ def create_DICOM_files():
         ("0008|0008", "DERIVED\\SECONDARY"),  # Image Type
         (
             "0020|000e",
-            "1.2.826.0.1.3680043.2.1125."
+
+            "1.2.856.0.1.9865043.2.1125."
             + modification_date
             + ".1"
             + modification_time,
@@ -161,11 +162,14 @@ def create_DICOM_files():
         # (Patient)
         ("0008|103e", "Created-SimpleITK"),  # Series Description
     ]
-
+    folder_name = os.path.join("test-data","dicom_2")
+    if not os.path.exists(folder_name):
+        # If it doesn't exist, create it
+        os.makedirs(folder_name)
     # Write slices to output directory
     list(
         map(
-            lambda i: writeSlices(series_tag_values, new_img, os.path.join("test-data","dicom_files"), i, writer= writer),
+            lambda i: writeSlices(series_tag_values, new_img, folder_name, i, writer= writer),
             range(new_img.GetDepth()),
         )
     )
@@ -244,3 +248,9 @@ def create_NII_file():
 
     # Save the 3D image
     sitk.WriteImage(image_with_numbers, 'image_with_numbers.nii')
+
+
+
+if __name__ == "__main__":
+    create_DICOM_files()
+    # create_NII_file()

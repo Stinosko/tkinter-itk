@@ -69,7 +69,7 @@ class DICOM_serie_manager(PatchedFrame):
         self.reader.LoadPrivateTagsOn()
         
         self.series_file_names = {}
-        self.DICOM_DIR = os.path.join(os.getcwd(), "test-data", "dicom_files")
+        self.DICOM_DIR = os.path.join(os.getcwd(), "test-data")
 
         # Add a canvas in that frame
         self.canvas = tk.Canvas(self, bg="yellow")
