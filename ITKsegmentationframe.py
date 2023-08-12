@@ -18,12 +18,12 @@ def set_mask_value(image, mask, value):
                      msk32*value, image.GetPixelID())
 
 class ITKsegmentationFrame(ITKviewerFrame):
-    def __init__(self, mainframe, **kwargs):
+    def __init__(self, parent, **kwargs):
         """ Initialize the ITK viewer Frame """
         self.max_layers = 255
         self.seg_image_needs_update = True
-        super().__init__(mainframe, **kwargs)
-        self.mainframe = mainframe
+        super().__init__(parent, **kwargs)
+        self.parent = parent
         self.seg_image = ImageTk.PhotoImage(self.get_image_from_seg_array())
 
     def initialize(self):

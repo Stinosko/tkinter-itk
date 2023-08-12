@@ -86,7 +86,7 @@ class MainWindow(ttk.Frame):
         self.DICOM_serie_manager = DICOM_serie_manager(self.master, bg="blue")
         self.DICOM_serie_manager.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
 
-        self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = example_frame_list, bg = "yellow") # create ITK Frame
+        self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = example_frame_list, bg = "yellow", parent=self) # create ITK Frame
         # self.ITKviewer = ITKviewerFrame(self.mainframe, bg = "red") # create ITK Frame
         # self.ITKviewer = ITKsegmentationFrame(self.mainframe, bg = "red") # create ITK Frame
         self.ITKviewer.grid(row=1, column=1, columnspan = 2, sticky= tk.N + tk.S + tk.E + tk.W)  # show ITK 

@@ -122,10 +122,10 @@ def get_first_frame_from_nested_list(nested_list):
 
 
 class imagesFrameManager(PatchedFrame):
-    def __init__(self, mainframe, image_label_layout: list = [0], **kwargs):
+    def __init__(self, mainframe, image_label_layout: list = [0], parent = None, **kwargs):
         """ Initialize the ITK viewer Frame """
         super().__init__(mainframe, **kwargs)
-        self.mainframe = mainframe
+        self.parent = parent
         
         self.frame = self
         self.frame.grid(row=0, column=0, sticky= tk.N + tk.S + tk.E + tk.W)

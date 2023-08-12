@@ -8,7 +8,7 @@ from Utils import timer_func, PatchedFrame
 import SimpleITK as sitk
 from ITKviewerframe import ITKviewerFrame
 import os
-from image_frame_preview import image_frame_preview
+from DICOM_serie_instance import DICOM_serie_instance
 
 def GetGDCMSeriesIDs_recursive(DICOM_DIR, reader):
     """placeholder"""
@@ -96,7 +96,7 @@ class DICOM_serie_manager(PatchedFrame):
         self.frame_buttons = tk.Frame(self.canvas, bg="blue")
         self.canvas.create_window((0, 0), window=self.frame_buttons, anchor='nw')
         
-        self.image_preview_frames = []
+        self.DICOM_serie_instances = {}
         
         self.load_DICOM_serie(DICOM_DIR = self.DICOM_DIR)
         self.set_preview_frames()
@@ -131,10 +131,11 @@ class DICOM_serie_manager(PatchedFrame):
 
     def set_preview_frames(self):
         # Add 9-by-5 buttons to the frame
-        self.image_preview_frames = []
+        
+        self.DICOM_serie_instances = {}
         for i, serie_ID in enumerate(self.get_serie_IDs()):
-                self.image_preview_frames +=  [image_frame_preview(self.frame_buttons, self.DICOM_DIR, serie_ID, self.get_serie_reader(serie_ID))]
-                self.image_preview_frames[-1].grid(row=i, column=0, sticky='news')
+                self.DICOM_serie_instances[serie_ID] = DICOM_serie_instance(self.frame_buttons, self.DICOM_DIR, serie_ID, self.get_serie_reader(serie_ID))
+                self.DICOM_serie_instances[serie_ID].grid(row=i, column=0, sticky='news')
         
         # Update buttons frames idle tasks to let tkinter calculate frame sizes
         self.update_idletasks()
@@ -142,6 +143,12 @@ class DICOM_serie_manager(PatchedFrame):
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
 
     def reset_preview_frames(self):
-        for frame in self.image_preview_frames:
-            frame.destroy()
+        for serie_ID in self.get_serie_IDs():
+            self.DICOM_serie_instances[serie_ID].destroy()
         self.set_preview_frames()
+
+    def get_serie_length(self, serie_ID):
+        return self.DICOM_serie_instances[serie_ID].get_serie_length()
+    
+    def get_image_slice(self, serie_ID, slice_index):
+        return self.DICOM_serie_instances[serie_ID].get_image_slice(slice_index)

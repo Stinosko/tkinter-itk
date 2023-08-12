@@ -58,7 +58,7 @@ def clone_widget(widget, master=None):
 
     return cloned
 
-class image_frame_preview(PatchedFrame):
+class DICOM_serie_instance(PatchedFrame):
     """placeholder"""
     def __init__(self, mainframe, DICOM_DIR, Serie_ID, reader, **kwargs):
         PatchedFrame.__init__(self, mainframe, **kwargs)
@@ -67,9 +67,9 @@ class image_frame_preview(PatchedFrame):
         self.Serie_ID = Serie_ID
         self.reader = reader
 
-        slices = len(self.reader.GetFileNames())
+        self.total_slices = len(self.reader.GetFileNames())
         self.preview_reader = sitk.ImageFileReader()
-        self.preview_reader.SetFileName(self.reader.GetFileNames()[round(slices/2) - 1])
+        self.preview_reader.SetFileName(self.reader.GetFileNames()[round(self.total_slices/2) - 1])
         self.preview_ITK_image = self.preview_reader.Execute()
         self.preview_image = sitk.GetArrayFromImage(self.preview_ITK_image)
 
@@ -94,9 +94,9 @@ class image_frame_preview(PatchedFrame):
         self._nametowidget(".").bind_class("drag","<ButtonRelease-1>", self.on_drag_release)
 
     def on_drag_start(self, event):
-        image_frame_preview = re.search("(.*)(image_frame_preview)(\\d+)?", str(event.widget)).group()
-        self.drag_widget = clone_widget(self._nametowidget(image_frame_preview).preview_label, master=self._nametowidget("."))
-        self.drag_widget.reader = self._nametowidget(image_frame_preview).reader
+        DICOM_serie_instance = re.search("(.*)(DICOM_serie_instance)(\\d+)?".lower(), str(event.widget)).group()
+        self.drag_widget = clone_widget(self._nametowidget(DICOM_serie_instance).preview_label, master=self._nametowidget("."))
+        self.drag_widget.reader = self._nametowidget(DICOM_serie_instance).reader
         self.drag_widget._drag_start_x = event.x
         self.drag_widget._drag_start_y = event.y
     
@@ -115,10 +115,21 @@ class image_frame_preview(PatchedFrame):
         self._nametowidget(".").update_idletasks()
         target_widget = self._nametowidget(".").winfo_containing(x,y)
         
-        itkviewerframe = re.search("(.*)(itkviewerframe|itksegmentationframe)(\\d+)?", str(target_widget)).group()
+        itkviewerframe = re.search("(.*)(itkviewerframe|itksegmentationframe)(\\d+)?".lower(), str(target_widget)).group()
         print(itkviewerframe)
         itkviewerframe = self._nametowidget(itkviewerframe)
         ITK_image = self.drag_widget.reader.Execute()
         ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
         ITK_image.SetOrigin((0,0,0))
         itkviewerframe.load_new_CT(ITK_image= ITK_image)
+
+    def get_serie_length(self):
+        return self.total_slices
+    
+    def get_image_slice(self, slice_number):
+        reader = sitk.ImageFileReader()
+        reader.SetFileName(self.reader.GetFileNames()[slice_number])
+        ITK_image = reader.Execute()
+        ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
+        ITK_image.SetOrigin((0,0,0))
+        return ITK_image[:,:,0] #preventing 3D images to be passed to the viewer

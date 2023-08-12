@@ -11,6 +11,7 @@ from Utils import PatchedLabel
 
 class ITKviewerFrame(tk.Frame):    
     """ ITK viewer Frame """
+    #needed for copying the frame
     custom_options = ("FrameManager",)
 
     def __init__(self, parent, FrameManager = None,  **kwargs):
@@ -18,6 +19,8 @@ class ITKviewerFrame(tk.Frame):
         super().__init__(parent, **kwargs)
         self.parent = parent
         self.FrameManager = FrameManager
+        self.mainframe = self.FrameManager.parent
+
         self.zoom_delta = 1
         self.zoom = 1
         self.slice_index = 0
@@ -32,7 +35,13 @@ class ITKviewerFrame(tk.Frame):
 
         self.interpolate = Image.NEAREST
 
-        self.ITK_image = self.get_dummy_SITK_image()
+        
+        if self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs() is not None:
+            self.serie_id = list(self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs())[0]
+            self.ITK_image = self.FrameManager.parent.DICOM_serie_manager.get_serie_reader(self.serie_id).Execute()
+        else:
+            self.serie_id = None
+            self.ITK_image = self.get_dummy_SITK_image()
 
         self.frame = self
         self.frame.grid(row=0, column=0, sticky="news")
@@ -112,7 +121,7 @@ class ITKviewerFrame(tk.Frame):
         image.SetDirection([1,0.25,0,0,0.75,0,0,0,1])
         return image
 
-    @timer_func(FPS_target=50000)
+    @timer_func(FPS_target=30)
     def get_image_from_HU_array(self, img_type="RGBA"):
         """ Return image from HU array """
         # https://github.com/jonasteuwen/SimpleITK-examples/blob/master/examples/apply_lut.py
@@ -123,12 +132,14 @@ class ITKviewerFrame(tk.Frame):
         max_output_value = 255
         min_output_value = 0
 
-        pixel_type = self.ITK_image.GetPixelIDValue()
+        self.DICOM_image_slice = self.get_image_slice(self.slice_index)
+        pixel_type = self.DICOM_image_slice.GetPixelIDValue()
+        
         if (pixel_type == sitk.sitkUInt8 or pixel_type == sitk.sitkUInt16 or pixel_type == sitk.sitkUInt32 or pixel_type == sitk.sitkUInt64) and minimum_hu < 0:
             min_output_value = int( abs(minimum_hu) / (maximum_hu - minimum_hu) )
             minimum_hu = 0
         
-        self.slice_gray_ITK_image = sitk.IntensityWindowing(self.ITK_image[:,:, self.slice_index],
+        self.slice_gray_ITK_image = sitk.IntensityWindowing(self.DICOM_image_slice,
                                             int(minimum_hu), int(maximum_hu),
                                             min_output_value,
                                             max_output_value)
@@ -138,6 +149,11 @@ class ITKviewerFrame(tk.Frame):
         img_arr = Image.fromarray(np_slice_gray_image, "L").convert(img_type)
         return img_arr
     
+    def get_image_slice(self, slice_index):
+        """placeholder"""
+        if self.serie_id is not None:
+            return self.mainframe.DICOM_serie_manager.get_image_slice(self.serie_id, slice_index)
+        return self.ITK_image[:,:, slice_index]
     
     def get_image_from_HU_array_with_zoom(self, force_update=False):
         """placeholder"""
@@ -174,12 +190,13 @@ class ITKviewerFrame(tk.Frame):
             for parent in parents:
                 widget._nametowidget(parent).update()
     
-    def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None):
+    def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None, serie_ID: str = None):
         """placeholder"""
         logging.debug("load_new_CT")
         if ITK_image is not None:
             self.ITK_image = ITK_image
 
+        self.serie_ID = serie_ID
         self.slice_index = 0
         
         self.center_X = 0
@@ -215,16 +232,20 @@ class ITKviewerFrame(tk.Frame):
         logging.debug("Next slice")
         self.image_needs_updating = True
         self.slice_index += 1
-        CT_image_cache = None
-        if self.slice_index >= self.ITK_image.GetSize()[2]:
-            self.slice_index = self.ITK_image.GetSize()[2] - 1
+        
+        if self.serie_id is not None:
+            if self.slice_index >= self.mainframe.DICOM_serie_manager.get_serie_length(self.serie_id):
+                self.slice_index = self.mainframe.DICOM_serie_manager.get_serie_length(self.serie_id) - 1
+        else:
+            if self.slice_index >= self.ITK_image.GetSize()[2]:
+                self.slice_index = self.ITK_image.GetSize()[2] - 1
         self.update_image()
         
     def previous_slice(self):
         self.image_needs_updating = True
         logging.debug("Previous slice")
         self.slice_index -= 1
-        CT_image_cache = None
+        
         if self.slice_index < 0:
             self.slice_index = 0
         self.update_image()
@@ -248,7 +269,7 @@ class ITKviewerFrame(tk.Frame):
     def pan_image(self, event):
         logging.debug("panning")
         self.focus_set()
-        self.parent.update_idletasks()
+        self.update_idletasks()
         if (self.start_click_location_X == event.x or self.start_click_location_X == None) and (self.start_click_location_Y == event.y or self.start_click_location_Y == None):
             logging.error("pan invalid")
             return
@@ -286,9 +307,9 @@ class ITKviewerFrame(tk.Frame):
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
         sp_x , sp_y = self.slice_gray_ITK_image.GetSpacing()
         if event is not None:
-            x, y = self.ITK_image[:,:, self.slice_index].TransformPhysicalPointToIndex(self.transform.TransformPoint((event.x, event.y)))
+            x, y = self.DICOM_image_slice.TransformPhysicalPointToIndex(self.transform.TransformPoint((event.x, event.y)))
         elif coords is not None:
-            x, y = self.ITK_image[:,:, self.slice_index].TransformPhysicalPointToIndex(self.transform.TransformPoint((coords[0], coords[1])))
+            x, y = self.DICOM_image_slice.TransformPhysicalPointToIndex(self.transform.TransformPoint((coords[0], coords[1])))
         else:
             logging.error("No event or coords passed")
             return None, None        
@@ -332,7 +353,7 @@ class ITKviewerFrame(tk.Frame):
         logging.debug("windowing")
         self.focus_set()
         self.image_needs_updating = True
-        self.parent.update_idletasks()
+        self.update_idletasks()
         if (self.start_click_location_X == event.x or self.start_click_location_X == None) and (self.start_click_location_Y == event.y or self.start_click_location_Y == None):
             logging.error(" windowing invalid")
             return
