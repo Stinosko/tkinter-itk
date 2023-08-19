@@ -60,12 +60,13 @@ def clone_widget(widget, master=None):
 
 class DICOM_serie_instance(PatchedFrame):
     """placeholder"""
-    def __init__(self, mainframe, DICOM_DIR, Serie_ID, reader, **kwargs):
+    def __init__(self, mainframe, DICOM_DIR, serie_ID, reader, **kwargs):
         PatchedFrame.__init__(self, mainframe, **kwargs)
         self.mainframe = mainframe
         self.DICOM_DIR = DICOM_DIR
-        self.Serie_ID = Serie_ID
+        self.serie_ID = serie_ID
         self.reader = reader
+        self.ITK_image = None # preserving RAM if entire serie is not needed
 
         self.total_slices = len(self.reader.GetFileNames())
         self.preview_reader = sitk.ImageFileReader()
@@ -96,7 +97,8 @@ class DICOM_serie_instance(PatchedFrame):
     def on_drag_start(self, event):
         DICOM_serie_instance = re.search("(.*)(DICOM_serie_instance)(\\d+)?".lower(), str(event.widget)).group()
         self.drag_widget = clone_widget(self._nametowidget(DICOM_serie_instance).preview_label, master=self._nametowidget("."))
-        self.drag_widget.reader = self._nametowidget(DICOM_serie_instance).reader
+        self.drag_widget.serie_ID = self._nametowidget(DICOM_serie_instance).serie_ID
+        # print(self.drag_widget.serie_ID)
         self.drag_widget._drag_start_x = event.x
         self.drag_widget._drag_start_y = event.y
     
@@ -118,18 +120,31 @@ class DICOM_serie_instance(PatchedFrame):
         itkviewerframe = re.search("(.*)(itkviewerframe|itksegmentationframe)(\\d+)?".lower(), str(target_widget)).group()
         print(itkviewerframe)
         itkviewerframe = self._nametowidget(itkviewerframe)
-        ITK_image = self.drag_widget.reader.Execute()
-        ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
-        ITK_image.SetOrigin((0,0,0))
-        itkviewerframe.load_new_CT(ITK_image= ITK_image)
+        serie_ID = self.drag_widget.serie_ID
+        itkviewerframe.load_new_CT(serie_ID = serie_ID)
 
     def get_serie_length(self):
         return self.total_slices
     
     def get_image_slice(self, slice_number):
-        reader = sitk.ImageFileReader()
-        reader.SetFileName(self.reader.GetFileNames()[slice_number])
-        ITK_image = reader.Execute()
-        ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
-        ITK_image.SetOrigin((0,0,0))
-        return ITK_image[:,:,0] #preventing 3D images to be passed to the viewer
+        if self.ITK_image is None:
+            reader = sitk.ImageFileReader()
+            reader.SetFileName(self.reader.GetFileNames()[slice_number])
+            ITK_image = reader.Execute()
+            ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
+            ITK_image.SetOrigin((0,0,0))
+            return ITK_image[:,:,0] #preventing 3D images to be passed to the viewer
+        else:
+            return self.ITK_image[:,:,slice_number]
+    
+    def get_serie_size(self):
+        size = list(self.preview_reader.GetSize())
+        size[-1] = self.total_slices
+        return tuple(size)
+    
+    def get_serie_image(self):
+        if self.ITK_image is None:
+            self.ITK_image = self.reader.Execute()
+            self.ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
+            self.ITK_image.SetOrigin((0,0,0))
+        return self.ITK_image

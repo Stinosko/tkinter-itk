@@ -37,10 +37,10 @@ class ITKviewerFrame(tk.Frame):
 
         
         if self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs() is not None:
-            self.serie_id = list(self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs())[0]
-            self.ITK_image = self.FrameManager.parent.DICOM_serie_manager.get_serie_reader(self.serie_id).Execute()
+            self.serie_ID = list(self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs())[0]
+            self.ITK_image = self.FrameManager.parent.DICOM_serie_manager.get_serie_reader(self.serie_ID).Execute()
         else:
-            self.serie_id = None
+            self.serie_ID = None
             self.ITK_image = self.get_dummy_SITK_image()
 
         self.frame = self
@@ -151,8 +151,9 @@ class ITKviewerFrame(tk.Frame):
     
     def get_image_slice(self, slice_index):
         """placeholder"""
-        if self.serie_id is not None:
-            return self.mainframe.DICOM_serie_manager.get_image_slice(self.serie_id, slice_index)
+        if self.serie_ID is not None:
+            # print(self.serie_ID)
+            return self.mainframe.DICOM_serie_manager.get_image_slice(self.serie_ID, slice_index)
         return self.ITK_image[:,:, slice_index]
     
     def get_image_from_HU_array_with_zoom(self, force_update=False):
@@ -190,13 +191,13 @@ class ITKviewerFrame(tk.Frame):
             for parent in parents:
                 widget._nametowidget(parent).update()
     
-    def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None, serie_ID: str = None):
+    def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None, serie_ID: str = None, update_image: bool = True):
         """placeholder"""
-        logging.debug("load_new_CT")
+        logging.info("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
         if ITK_image is not None:
             self.ITK_image = ITK_image
-
         self.serie_ID = serie_ID
+        # print("serie_ID", serie_ID)
         self.slice_index = 0
         
         self.center_X = 0
@@ -209,7 +210,8 @@ class ITKviewerFrame(tk.Frame):
             self.level = level
 
         self.image_needs_updating = True
-        self.update_image()
+        if update_image:
+            self.update_image()
 
     def __scroll(self, event):
         logging.debug("Scrolling")
@@ -233,9 +235,9 @@ class ITKviewerFrame(tk.Frame):
         self.image_needs_updating = True
         self.slice_index += 1
         
-        if self.serie_id is not None:
-            if self.slice_index >= self.mainframe.DICOM_serie_manager.get_serie_length(self.serie_id):
-                self.slice_index = self.mainframe.DICOM_serie_manager.get_serie_length(self.serie_id) - 1
+        if self.serie_ID is not None:
+            if self.slice_index >= self.mainframe.DICOM_serie_manager.get_serie_length(self.serie_ID):
+                self.slice_index = self.mainframe.DICOM_serie_manager.get_serie_length(self.serie_ID) - 1
         else:
             if self.slice_index >= self.ITK_image.GetSize()[2]:
                 self.slice_index = self.ITK_image.GetSize()[2] - 1

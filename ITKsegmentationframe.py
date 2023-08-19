@@ -27,16 +27,26 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.seg_image = ImageTk.PhotoImage(self.get_image_from_seg_array())
 
     def initialize(self):
-        self.ITK_seg_array = sitk.Image(self.ITK_image.GetSize(), sitk.sitkUInt8)
-        self.ITK_seg_array.CopyInformation(self.ITK_image)
+        self.segmentation_serie_manager = self.FrameManager.parent.segmentation_serie_manager
+
+        if self.serie_ID is None:
+            self.ITK_seg_array = sitk.Image(self.ITK_image.GetSize(), sitk.sitkUInt8)
+            self.ITK_seg_array.CopyInformation(self.ITK_image)
+        else:
+            self.ITK_seg_array = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True)
+        
         super().initialize()
     
     def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None,**kwargs):
         """placeholder"""
+        super().load_new_CT(window, level, ITK_image= ITK_image, update_image = False, **kwargs)
         self.seg_image_needs_update = True
-        self.ITK_seg_array = sitk.Image(ITK_image.GetSize(), sitk.sitkUInt8)
-        self.ITK_seg_array.CopyInformation(ITK_image)
-        super().load_new_CT(window, level, ITK_image= ITK_image, **kwargs)
+        if self.serie_ID is None:
+            self.ITK_seg_array = sitk.Image(ITK_image.GetSize(), sitk.sitkUInt8)
+            self.ITK_seg_array.CopyInformation(ITK_image)
+        else:
+            self.ITK_seg_array = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True)
+        self.update_image()
     
     @timer_func(FPS_target=6000)
     def get_image_from_seg_array(self):

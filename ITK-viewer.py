@@ -13,6 +13,7 @@ from ITKviewerframe import ITKviewerFrame
 from topbar import Topbar
 from ImagesFrameManager import imagesFrameManager, example_frame_list
 from DICOM_serie_manager import DICOM_serie_manager
+from segmentation_serie_manager import Segmentation_serie_manager
 #import progressbar
 
 
@@ -85,6 +86,8 @@ class MainWindow(ttk.Frame):
 
         self.DICOM_serie_manager = DICOM_serie_manager(self.master, bg="blue")
         self.DICOM_serie_manager.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
+
+        self.segmentation_serie_manager = Segmentation_serie_manager(self, self.DICOM_serie_manager)
 
         self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = example_frame_list, bg = "yellow", parent=self) # create ITK Frame
         # self.ITKviewer = ITKviewerFrame(self.mainframe, bg = "red") # create ITK Frame

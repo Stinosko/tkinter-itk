@@ -152,3 +152,9 @@ class DICOM_serie_manager(PatchedFrame):
     
     def get_image_slice(self, serie_ID, slice_index):
         return self.DICOM_serie_instances[serie_ID].get_image_slice(slice_index)
+    
+    def get_serie_size(self, serie_ID):
+        return self.DICOM_serie_instances[serie_ID].get_serie_size()
+    
+    def get_serie_image(self, serie_ID):
+        return self.DICOM_serie_instances[serie_ID].get_serie_image()
