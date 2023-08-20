@@ -7,7 +7,7 @@ import math
 from Utils import timer_func
 import SimpleITK as sitk
 from reloading import reloading
-from Utils import PatchedLabel
+from Utils import PatchedLabel, PatchedCanvas
 
 class ITKviewerFrame(tk.Frame):    
     """ ITK viewer Frame """
@@ -46,7 +46,7 @@ class ITKviewerFrame(tk.Frame):
         self.frame = self
         self.frame.grid(row=0, column=0, sticky="news")
 
-        self.image_label = PatchedLabel(self.frame)  
+        self.image_label = PatchedCanvas(self.frame)  
         self.image_needs_updating = True
         # https://stackoverflow.com/questions/7591294/how-to-create-a-self-resizing-grid-of-buttons-in-tkinter
         self.initialize()
@@ -57,7 +57,7 @@ class ITKviewerFrame(tk.Frame):
         
         self.image_needs_updating = True
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())  # create image object
-        self.image_label.configure(image=self.image)
+        self.canvas_image_id = self.image_label.create_image(0, 0, anchor=tk.NW, image=self.image)  # put image on canvas
 
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
@@ -169,7 +169,7 @@ class ITKviewerFrame(tk.Frame):
     def update_image(self):
         """placeholder"""
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
-        self.image_label.configure(image=self.image)
+        self.image_label.itemconfigure(self.canvas_image_id, image=self.image)
 
     def update_image_frame(self):
         """placeholder"""

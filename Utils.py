@@ -59,6 +59,24 @@ class PatchedLabel(tk.Label):
         self.tk.call('bind', self._w, sequence, '\n'.join(new_callbacks))
         self.deletecommand(funcid)
 
+class PatchedCanvas(tk.Canvas):
+    def unbind(self, sequence, funcid=None):
+        '''
+        See:
+            http://stackoverflow.com/questions/6433369/
+            deleting-and-changing-a-tkinter-event-binding-in-python
+        '''
+
+        if not funcid:
+            self.tk.call('bind', self._w, sequence, '')
+            return
+        func_callbacks = self.tk.call(
+            'bind', self._w, sequence, None).split('\n')
+        new_callbacks = [
+            l for l in func_callbacks if l[6:6 + len(funcid)] != funcid]
+        self.tk.call('bind', self._w, sequence, '\n'.join(new_callbacks))
+        self.deletecommand(funcid)
+
 class PatchedFrame(tk.Frame):
     def unbind(self, sequence, funcid=None):
         '''
@@ -248,6 +266,34 @@ def create_NII_file():
 
     # Save the 3D image
     sitk.WriteImage(image_with_numbers, 'image_with_numbers.nii')
+
+# Creating class AutoScrollbar
+# https://www.geeksforgeeks.org/autohiding-scrollbars-using-python-tkinter/
+class AutoScrollbar(tk.Scrollbar):
+       
+    # Defining set method with all 
+    # its parameter
+    def set(self, low, high):
+           
+        if float(low) <= 0.0 and float(high) >= 1.0:
+               
+            # Using grid_remove
+            self.tk.call("grid", "remove", self)
+        else:
+            self.grid()
+        tk.Scrollbar.set(self, low, high)
+       
+    # Defining pack method
+    def pack(self, **kw):
+           
+        # If pack is used it throws an error
+        raise (tk.TclError,"pack cannot be used with this widget")
+       
+    # Defining place method
+    def place(self, **kw):
+           
+        # If place is used it throws an error
+        raise (tk.TclError, "place cannot be used  with this widget")
 
 
 
