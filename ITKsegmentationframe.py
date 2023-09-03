@@ -1,11 +1,7 @@
-import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
-import logging
-import numpy as np
 from PIL import Image, ImageTk
-import math
 import SimpleITK as sitk
-from reloading import reloading
+import numpy as np
+import logging
 
 from ITKviewerframe import ITKviewerFrame
 from Utils import timer_func
@@ -48,7 +44,6 @@ class ITKsegmentationFrame(ITKviewerFrame):
             self.ITK_seg_array = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True)
         self.update_image()
     
-    @timer_func(FPS_target=6000)
     def get_image_from_seg_array(self):
         """placeholder"""
         image_segmentation_array = sitk.GetArrayFromImage(sitk.LabelToRGB(self.ITK_seg_array[:,:, self.slice_index]))

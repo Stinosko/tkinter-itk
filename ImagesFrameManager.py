@@ -15,12 +15,12 @@ example = [
     4,
     5,
 ]
-
+panedwindows = False #needs more work to be functional
 example_frame_list = [
     [[ITKsegmentationFrame,
       ITKviewerFrame],ITKviewerFrame,],
     ITKviewerFrame,
-    ITKviewerFrame,
+    ITKsegmentationFrame,
 ]
 
 
@@ -49,11 +49,20 @@ def create_concept_from_nested_list(mainframe, nested_list, horizontal= True, **
 
 def create_image_viewers_from_nested_list(mainframe, nested_list, horizontal= True, position = 0, FrameManager = None, **kwargs):
     """placeholder"""
-    frame = PatchedFrame(mainframe, **kwargs)
-    if horizontal:
-        frame.grid(row=position, column=0, sticky="news")
+    
+    if panedwindows:
+        frame = ttk.Panedwindow(mainframe, orient= tk.HORIZONTAL if horizontal else tk.VERTICAL, width=20, height=20)
     else:
-        frame.grid(row=0, column=position, sticky="news")
+        frame = PatchedFrame(mainframe, **kwargs)
+    
+    if panedwindows:
+        mainframe.add(frame)
+        
+    else:
+        if horizontal:
+            frame.grid(row=position, column=0, sticky="news")
+        else:
+            frame.grid(row=0, column=position, sticky="news")
     
     result = []
     for i, sub_item in enumerate(nested_list):
@@ -63,17 +72,35 @@ def create_image_viewers_from_nested_list(mainframe, nested_list, horizontal= Tr
         else:
             image_frame = sub_item(frame, FrameManager=FrameManager, **kwargs)
             image_frame.grid_propagate(0) #not essential when grid is used correctly else the frames will grow indefinitely or "attacking" each other
-            if horizontal:
-                image_frame.grid(row=0, column=i, sticky="news", padx=1, pady=1)
+            
+            if panedwindows:
+                if horizontal:
+                    frame.add(image_frame)
+                else:
+                    frame.add(image_frame)
             else:
-                image_frame.grid(row=i, column=0, sticky="news", padx=1, pady=1)
+                if horizontal:
+                    image_frame.grid(row=0, column=i, sticky="news", padx=1, pady=1)
+                else:
+                    image_frame.grid(row=i, column=0, sticky="news", padx=1, pady=1)
+            
             result += [image_frame]
-    if horizontal:
-        frame.columnconfigure(tuple([n for n in range(0, i+1)]), weight=1)
-        frame.rowconfigure(0, weight=1)
+    
+    if panedwindows:
+        pass
+        # if horizontal:
+        #     frame.columnconfigure(tuple([n for n in range(0, i+1)]), weight=1)
+        #     frame.rowconfigure(0, weight=1)
+        # else:
+        #     frame.rowconfigure(tuple([n for n in range(0, i+1)]), weight=1)
+        #     frame.columnconfigure(0, weight=1)
     else:
-        frame.rowconfigure(tuple([n for n in range(0, i+1)]), weight=1)
-        frame.columnconfigure(0, weight=1)
+        if horizontal:
+            frame.columnconfigure(tuple([n for n in range(0, i+1)]), weight=1)
+            frame.rowconfigure(0, weight=1)
+        else:
+            frame.rowconfigure(tuple([n for n in range(0, i+1)]), weight=1)
+            frame.columnconfigure(0, weight=1)
     return [frame] + result
 
 def update_image_viewer_frames_from_nested_list(nested_list, horizontal= True, position = 0, **kwargs):
@@ -121,10 +148,10 @@ def get_first_frame_from_nested_list(nested_list):
             return sub_item
 
 
-class imagesFrameManager(PatchedFrame):
+class imagesFrameManager(ttk.PanedWindow):
     def __init__(self, mainframe, image_label_layout: list = [0], parent = None, **kwargs):
         """ Initialize the ITK viewer Frame """
-        super().__init__(mainframe, **kwargs)
+        super().__init__(mainframe)
         self.parent = parent
         
         self.frame = self

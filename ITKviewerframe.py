@@ -8,7 +8,7 @@ from Utils import timer_func
 import SimpleITK as sitk
 from reloading import reloading
 from Utils import PatchedLabel, PatchedCanvas
-
+from Annotation_point import Annotation_point
 class ITKviewerFrame(tk.Frame):    
     """ ITK viewer Frame """
     #needed for copying the frame
@@ -20,6 +20,8 @@ class ITKviewerFrame(tk.Frame):
         self.parent = parent
         self.FrameManager = FrameManager
         self.mainframe = self.FrameManager.parent
+        self.annotation_manager = self.FrameManager.parent.annotation_manager
+        self.annotation_cache = {}
 
         self.zoom_delta = 1
         self.zoom = 1
@@ -83,6 +85,7 @@ class ITKviewerFrame(tk.Frame):
         # self.frame.bind('<Configure>', lambda event: self.update_image_frame())
         self.bind('<FocusIn>', self.on_focus_in)
         # self.bind('<FocusOut>', self.on_focus_out)
+        self.image_label.bind('<Button-3>', self.add_point_annotation)
 
     def on_focus_in(self, event):
         self.configure(bg="red")
@@ -121,7 +124,6 @@ class ITKviewerFrame(tk.Frame):
         image.SetDirection([1,0.25,0,0,0.75,0,0,0,1])
         return image
 
-    @timer_func(FPS_target=30)
     def get_image_from_HU_array(self, img_type="RGBA"):
         """ Return image from HU array """
         # https://github.com/jonasteuwen/SimpleITK-examples/blob/master/examples/apply_lut.py
@@ -163,6 +165,8 @@ class ITKviewerFrame(tk.Frame):
         logging.debug("zooming in")
         self.slice_ITK_image = self.slice_gray_ITK_image
         self.slice_PIL_image_trasformed = self.zoom_itk()
+
+        self.update_canvas_annotations()
         self.image_needs_updating = False
         return self.slice_PIL_image_trasformed
 
@@ -199,7 +203,8 @@ class ITKviewerFrame(tk.Frame):
         self.serie_ID = serie_ID
         # print("serie_ID", serie_ID)
         self.slice_index = 0
-        
+        self.annotation_cache = {}
+
         self.center_X = 0
         self.center_Y = 0
         self.zoom = 1
@@ -324,10 +329,11 @@ class ITKviewerFrame(tk.Frame):
     
     def update_label_meta_info_value(self, event):
         x, y = self.get_mouse_location_dicom(event)
-        if x < 0 or x >= self.ITK_image.GetSize()[0] or y < 0 or y >= self.ITK_image.GetSize()[1]:
+        if x < 0 or x >= self.ITK_image.GetSize()[0] or y < 0 or y >= self.ITK_image.GetSize()[1] or not self.is_mouse_on_image(event):
             logging.debug("mouse out of bounds")
             self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
             return
+            
         HU = self.ITK_image[x,y, self.slice_index]
         self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, HU: {HU}")
         
@@ -382,3 +388,101 @@ class ITKviewerFrame(tk.Frame):
             return Image.fromarray( sitk.GetArrayFromImage(self.slice_ITK_image_transformed).astype(np.uint8), mode="L")
         elif self.slice_ITK_image_transformed.GetNumberOfComponentsPerPixel() == 3:
             return Image.fromarray( sitk.GetArrayFromImage(self.slice_ITK_image_transformed).astype(np.uint8), mode="RGB")
+
+    def get_annotations(self):
+        """placeholder"""
+        return self.annotation_manager.get_annotations(self.serie_ID)
+    
+    def get_annotation(self, annotation_ID):
+        """placeholder"""
+        return self.annotation_manager.get_annotation(self.serie_ID, annotation_ID)
+    
+    def get_visible_annotations(self):
+        """placeholder"""
+        visible_annotations = []
+        visible_points = self.get_visible_DICOM_coords()
+        x0, y0 = visible_points[0]
+
+        x3, y3 = visible_points[3] #bottom right corner
+        for annotation in self.get_annotations():
+            annotation = self.get_annotation(annotation)
+            coords = annotation.get_ITK_coords()
+            if coords[0] >= x0 and coords[0] <= x3 and coords[1] >= y0 and coords[1] <= y3 and coords[2] == self.slice_index:
+                visible_annotations.append(annotation)
+        logging.debug("visible_annotations: %s", visible_annotations)
+        return visible_annotations
+    
+    def add_point_annotation(self, event):
+        """placeholder"""
+        logging.debug("add_point_annotation")
+        x, y = self.get_mouse_location_dicom(event)
+        self.annotation_manager.add_annotations_serie(self.serie_ID, Annotation_point, coords = [x, y, self.slice_index])
+        self.update_image()
+
+    def update_canvas_annotations(self):
+        """placeholder"""
+        self.image_label.delete("annotation")
+        visible_annotations = self.get_visible_annotations()
+        
+        for annotation in list(self.annotation_cache.keys()):
+            if annotation not in visible_annotations:
+                self.image_label.delete(self.annotation_cache[annotation])
+                del self.annotation_cache[annotation]
+
+        for annotation in self.get_annotations():
+            annotation = self.get_annotation(annotation)
+            coords = annotation.get_ITK_coords()
+            annotation_unique_id = annotation.get_unique_id()
+            
+            if annotation in visible_annotations:
+                x, y = self.DICOM_image_slice.TransformIndexToPhysicalPoint((coords[0], coords[1]))
+                x, y = self.transform.GetInverse().TransformPoint((x,y))
+                
+                if annotation_unique_id in self.annotation_cache.keys():
+                    annotation.move_annotation_on_canvas(self.image_label, x, y, self.annotation_cache[annotation_unique_id])
+                else:
+                    self.annotation_cache[annotation_unique_id] = annotation.place_annotation_on_canvas(self.image_label, x, y)
+            
+            else:
+                if annotation_unique_id in self.annotation_cache.keys():
+                    self.image_label.delete(self.annotation_cache[annotation_unique_id])
+                    del self.annotation_cache[annotation_unique_id]
+            
+
+    def is_mouse_on_annototation(self, event):
+        """placeholder"""
+        visible_annotations = self.get_visible_annotations()
+        x, y = event.x, event.y
+        canvas_ids = self.image_label.find_overlapping(x, y, x, y)
+
+        if len(canvas_ids) == 0:
+            
+            return False
+
+        if canvas_ids == [self.canvas_image_id]:
+            return False
+        
+
+        for annotation in visible_annotations:
+            self.annotation_cache[annotation]
+            coords = annotation.get_ITK_coords()
+            if coords[0] == x and coords[1] == y and coords[2] == self.slice_index:
+                return True
+        return False
+    
+
+    def is_mouse_on_image(self, event):
+        """placeholder"""
+        
+        x, y = event.x, event.y
+        print(x, y)
+        canvas_ids = self.image_label.find_overlapping(x-1, y-1, x+1, y+1)
+        print(canvas_ids)
+        if len(canvas_ids) == 0:
+            return False
+        elif canvas_ids == (self.canvas_image_id,):
+            print("on image")
+            return True
+        else:
+            print("not on image")
+            return False
