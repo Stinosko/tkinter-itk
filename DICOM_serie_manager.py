@@ -144,7 +144,8 @@ class DICOM_serie_manager(PatchedFrame):
 
     def reset_preview_frames(self):
         for serie_ID in self.get_serie_IDs():
-            self.DICOM_serie_instances[serie_ID].destroy()
+            if serie_ID in self.DICOM_serie_instances:
+                self.DICOM_serie_instances[serie_ID].destroy()
         self.set_preview_frames()
 
     def get_serie_length(self, serie_ID):

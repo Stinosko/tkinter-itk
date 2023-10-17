@@ -475,13 +475,13 @@ class ITKviewerFrame(tk.Frame):
         """placeholder"""
         
         x, y = event.x, event.y
-        print(x, y)
+        # print(x, y)
         canvas_ids = self.image_label.find_overlapping(x-1, y-1, x+1, y+1)
-        print(canvas_ids)
+        # print(canvas_ids)
         if len(canvas_ids) == 0:
             return False
         elif canvas_ids == (self.canvas_image_id,):
-            print("on image")
+            # print("on image")
             return True
         else:
             print("not on image")
