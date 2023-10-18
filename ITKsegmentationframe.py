@@ -54,7 +54,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
     def zoom_itk(self, *args, **kwargs):
         """ Zoom at x,y location"""
         NP_seg_slice = self.ITK_seg_array[:,:, self.slice_index]
-        if NP_seg_slice.size() != self.slice_gray_ITK_image.size():
+        if NP_seg_slice.GetSize() != self.slice_gray_ITK_image.GetSize():
             logging.warning("Segmentation image size does not match image size")
             self.ITK_seg_array = sitk.Image(self.slice_gray_ITK_image.GetSize(), sitk.sitkUInt8)
             self.ITK_seg_array.CopyInformation(self.slice_gray_ITK_image)
