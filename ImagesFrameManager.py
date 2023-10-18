@@ -22,7 +22,8 @@ example_frame_list = [
     ITKviewerFrame,
     ITKsegmentationFrame,
 ]
-
+example_segmentation_frame_list = [ITKsegmentationFrame,ITKsegmentationFrame]
+example_only_frame_list = [ITKviewerFrame,ITKviewerFrame]
 
 def find_id_in_nested_list(mylist, char):
     for i, sub_item in enumerate(mylist):

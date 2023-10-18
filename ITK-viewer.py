@@ -11,7 +11,7 @@ from helpMenu import HelpMenu
 from ITKsegmentationframe import ITKsegmentationFrame
 from ITKviewerframe import ITKviewerFrame
 from topbar import Topbar
-from ImagesFrameManager import imagesFrameManager, example_frame_list
+from ImagesFrameManager import imagesFrameManager, example_frame_list, example_segmentation_frame_list, example_only_frame_list
 from DICOM_serie_manager import DICOM_serie_manager
 from segmentation_serie_manager import Segmentation_serie_manager
 from Annotation_manager import Annotation_manager
@@ -91,7 +91,7 @@ class MainWindow(ttk.Frame):
         self.annotation_manager = Annotation_manager(self, self.DICOM_serie_manager)
         self.segmentation_serie_manager = Segmentation_serie_manager(self, self.DICOM_serie_manager)
 
-        self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = example_frame_list, bg = "yellow", parent=self) # create ITK Frame
+        self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = example_segmentation_frame_list, bg = "yellow", parent=self) # create ITK Frame
         # self.ITKviewer = ITKviewerFrame(self.mainframe, bg = "red") # create ITK Frame
         # self.ITKviewer = ITKsegmentationFrame(self.mainframe, bg = "red") # create ITK Frame
         self.ITKviewer.grid(row=1, column=1, columnspan = 2, sticky= tk.N + tk.S + tk.E + tk.W)  # show ITK 
