@@ -48,28 +48,36 @@ class SAM_segmentation:
         self.button = tk.Button(self.frame, text="Clear segmentation", command=self.clear_segmentation)
         self.button.grid(row=0, column=1, sticky=tk.E + tk.W, pady=1)
 
-        self.button2 = tk.Button(self.frame, text="SAM", command=self.sam_segmentation)
+        self.button2 = tk.Button(self.frame, text="Perform SAM", command=self.sam_segmentation)
         self.button2.grid(row=0, column=2, sticky=tk.E + tk.W, pady=1)
 
-        self.button3 = tk.Button(self.frame, text="Add SAM point", command=self.toggle_add, relief = tk.RAISED)
+        self.button3 = tk.Button(self.frame, text="Include SAM point", command=self.toggle_add, relief = tk.RAISED)
         self.button3.grid(row=0, column=3, sticky=tk.E + tk.W, pady=1)
 
-        self.button4 = tk.Button(self.frame, text="Remove SAM point", command=self.toggle_remove, relief = tk.RAISED)
+        self.button4 = tk.Button(self.frame, text="Exclude SAM point", command=self.toggle_remove, relief = tk.RAISED)
         self.button4.grid(row=0, column=4, sticky=tk.E + tk.W, pady=1)
 
-        self.button5 = tk.Button(self.frame, text="Reset points", command=self.reset_points)
+        self.button5 = tk.Button(self.frame, text="Reset SAM points", command=self.reset_points)
         self.button5.grid(row=0, column=5, sticky=tk.E + tk.W, pady=1)
 
         self.bind1 = self.parent.ITKviewer.active_widget.image_label.bind('<ButtonPress-1>', self.button1_press_event_image, add = "+")
         self.bind2 = self.parent.ITKviewer.active_widget.image_label.bind('<ButtonPress-3>', self.button3_press_event_image, add = "+")
         self.frame.bind("<Destroy>", self.destroy)
 
+        self.include_points = []
+        self.exclude_points = []
 
         return self.frame
 
     def reset_points(self):
-        self.parent.ITKviewer.active_widget.clear_segmentation_mask_current_slice(255)
-        self.parent.ITKviewer.active_widget.clear_segmentation_mask_current_slice(254)
+        for point in self.include_points:
+            self.parent.ITKviewer.active_widget.delete_annotation(point)
+        for point in self.exclude_points:
+            self.parent.ITKviewer.active_widget.delete_annotation(point)
+
+        self.include_points = []
+        self.exclude_points = []
+
         self.stop_add()
         self.stop_remove()
         self.update_segmentation()
@@ -83,12 +91,10 @@ class SAM_segmentation:
     
     def stop_remove(self):
         self.button4.config(relief="raised")
-        self.layer_height = int(self.layer_entry.get())
         self.remove = False
     
     def start_remove(self):
         self.button4.config(relief="sunken")
-        self.layer_height = int(254)
         self.remove = True
 
     def toggle_add(self):
@@ -100,12 +106,10 @@ class SAM_segmentation:
 
     def stop_add(self):
         self.button3.config(relief="raised")
-        self.layer_height = int(self.layer_entry.get())
         self.add = False
 
     def start_add(self):
         self.button3.config(relief="sunken")
-        self.layer_height = int(255)
         self.add = True
 
     def clear_segmentation(self):
@@ -151,21 +155,30 @@ class SAM_segmentation:
             return False
 
     def button1_press_event_image(self, event):
-        logging.info("button1_press_event_image in manual segmentation")
+        logging.debug("button1_press_event_image in manual segmentation")
         #get monitor cooridnates of mouse
         if self.mouse_in_itksegmentationframe(event) == False or self.ctrl_is_pressed(event) or self.shift_is_pressed(event) or self.ctrl_shift_is_pressed(event):
             logging.debug("mouse not in itksegmentationframe")
             return
         logging.debug(event.state - self.__previous_state)
         self.__previous_state = event.state  # remember the last keystroke state
-        print(self.layer_height)
+        # print(self.layer_height)
         x, y = self.parent.ITKviewer.active_widget.get_mouse_location_dicom(event)
-        print(x, y)
-        self.parent.ITKviewer.active_widget.set_segmentation_point_current_slice(int(x), int(y), self.layer_height)
+        # print(x, y)
+        if self.button3.config('relief')[-1] == 'sunken':
+            # print("add")
+            point = self.parent.ITKviewer.active_widget.set_annotation_point_current_slice(int(x), int(y), color="green", size=5)
+            self.include_points.append(point)
+        elif self.button4.config('relief')[-1] == 'sunken':
+            # print("remove")
+            point = self.parent.ITKviewer.active_widget.set_annotation_point_current_slice(int(x), int(y), color="red", size=5)
+            self.exclude_points.append(point)
+        else:
+            self.parent.ITKviewer.active_widget.set_segmentation_point_current_slice(int(x), int(y), self.layer_height)
         self.update_segmentation()
 
     def button3_press_event_image(self, event):
-        logging.info("button3_press_event_image in manual segmentation")
+        logging.debug("button3_press_event_image in manual segmentation")
         #get monitor cooridnates of mouse
         if self.mouse_in_itksegmentationframe(event) == False or self.ctrl_is_pressed(event) or self.shift_is_pressed(event) or self.ctrl_shift_is_pressed(event):
             logging.debug("mouse not in itksegmentationframe")
@@ -174,7 +187,19 @@ class SAM_segmentation:
         self.__previous_state = event.state
 
         x, y = self.parent.ITKviewer.active_widget.get_mouse_location_dicom(event)
-        self.parent.ITKviewer.active_widget.set_segmentation_point_current_slice(int(x), int(y), 0)
+
+        if (self.button3.config('relief')[-1] == 'sunken' or self.button4.config('relief')[-1] == 'sunken') and not self.parent.ITKviewer.active_widget.is_mouse_on_image(event):
+            visible_annotations = self.parent.ITKviewer.active_widget.annototation_under_mouse(event)
+            if len(visible_annotations) > 0:
+                for annotation in visible_annotations:
+                    if annotation.unique_id in self.include_points:
+                        self.parent.ITKviewer.active_widget.delete_annotation(annotation.unique_id)
+                        self.include_points.remove(annotation.unique_id)
+                    elif annotation.unique_id in self.exclude_points:
+                        self.parent.ITKviewer.active_widget.delete_annotation(annotation.unique_id)
+                        self.exclude_points.remove(annotation.unique_id)
+        else:
+            self.parent.ITKviewer.active_widget.set_segmentation_point_current_slice(int(x), int(y), 0)
         self.update_segmentation()
 
     def update_segmentation(self):
@@ -189,15 +214,17 @@ class SAM_segmentation:
         points_labels = np.empty((0,)) # 1 is add to segmentation, 0 is remove from segmentation
         
         NP_segmentation = self.parent.ITKviewer.active_widget.get_NP_seg_slice()
-        add_point = np.where(NP_segmentation == 255)
         
-        for x,y in zip(add_point[1], add_point[0]):
-            points_coords = np.append(points_coords, [[x, y]], axis=0)
+        
+        for point in self.include_points:
+            annotation = self.parent.ITKviewer.active_widget.get_annotation(point)
+            points_coords = np.append(points_coords, [annotation.ITK_coords[:-1]], axis=0)
             points_labels = np.append(points_labels, [1], axis=0)
-        remove_point = np.where(NP_segmentation == 254)
         
-        for x,y in zip(remove_point[1], remove_point[0]):
-            points_coords = np.append(points_coords, [[x, y]], axis=0)
+        
+        for point in self.exclude_points:
+            annotation = self.parent.ITKviewer.active_widget.get_annotation(point)
+            points_coords = np.append(points_coords, [annotation.ITK_coords[:-1]], axis=0)
             points_labels = np.append(points_labels, [0], axis=0)
 
         self.stop_add()

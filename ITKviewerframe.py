@@ -85,7 +85,7 @@ class ITKviewerFrame(tk.Frame):
         # self.frame.bind('<Configure>', lambda event: self.update_image_frame())
         self.bind('<FocusIn>', self.on_focus_in)
         # self.bind('<FocusOut>', self.on_focus_out)
-        self.image_label.bind('<Button-3>', self.toggle_point_annotation)
+        # self.image_label.bind('<Button-3>', self.toggle_point_annotation)
 
     def on_focus_in(self, event):
         self.configure(bg="red")
@@ -430,6 +430,17 @@ class ITKviewerFrame(tk.Frame):
                 for annotation in annotation_under_mouse:
                     self.annotation_manager.delete_annotation_ID(serie_ID = self.serie_ID, annotation_ID = annotation.get_unique_id())
                 self.update_image()
+
+    def delete_annotation(self, annotation_ID):
+        """placeholder"""
+        self.annotation_manager.delete_annotation_ID(serie_ID = self.serie_ID, annotation_ID = annotation_ID)
+        self.update_image()
+
+    def set_annotation_point_current_slice(self, x, y, color = "green", size = 5):
+        """placeholder"""
+        point = self.annotation_manager.add_annotations_serie(self.serie_ID, Annotation_point, coords = [x, y, self.slice_index], color = color, size = size)
+        self.update_image()
+        return point
 
     def update_canvas_annotations(self):
         """placeholder"""
