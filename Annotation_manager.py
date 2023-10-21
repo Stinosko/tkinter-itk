@@ -19,7 +19,7 @@ class Annotation_manager:
     
     def get_annotations(self, serie_ID):
         if serie_ID not in self.annotations.keys():
-            logging.warning('Serie ID does not have any annotations')
+            logging.debug('Serie ID does not have any annotations')
             return []
         return self.annotations[serie_ID].keys()
     
@@ -34,25 +34,25 @@ class Annotation_manager:
     
     def get_annotation(self, serie_ID, annotation_ID):
         if serie_ID not in self.annotations.keys():
-            logging.warning('Serie ID does not have any annotations')
+            logging.debug('Serie ID does not have any annotations')
             return None
         if annotation_ID not in self.annotations[serie_ID]:
-            logging.warning('Annotation ID does not exist')
+            logging.debug('Annotation ID does not exist')
             return None
         return self.annotations[serie_ID][annotation_ID]["annotation"]
     
     def delete_annotation_ID(self, serie_ID, annotation_ID):
         if serie_ID not in self.annotations.keys():
-            logging.warning('Serie ID does not have any annotations')
+            logging.debug('Serie ID does not have any annotations')
             return None
         if annotation_ID not in self.annotations[serie_ID]:
-            logging.warning('Annotation ID does not exist')
+            logging.debug('Annotation ID does not exist')
             return None
         del self.annotations[serie_ID][annotation_ID]
 
     def delete_all_serie_ID_annotations(self, serie_ID):
         if serie_ID not in self.annotations.keys():
-            logging.warning('Serie ID does not have any annotations')
+            logging.debug('Serie ID does not have any annotations')
             return None
         del self.annotations[serie_ID]
 

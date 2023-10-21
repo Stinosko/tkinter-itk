@@ -39,8 +39,8 @@ class Annotation_point():
             self.kwargs["outline"] = "black"
         if "width" not in kwargs:
             self.kwargs["width"] = 1
-        if "activefill" not in kwargs:
-            self.kwargs["activefill"] = "blue"
+        # if "activefill" not in kwargs:
+        #     self.kwargs["activefill"] = "blue"
         self.size = size
         
         canvas_id = canvas.create_rectangle(canvas_X - self.size, canvas_Y - self.size, canvas_X + self.size, canvas_Y + self.size, **self.kwargs)
