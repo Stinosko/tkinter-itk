@@ -24,7 +24,8 @@ class SAM_segmentation:
         self.parent.segmentation_modes.append(self.__class__.__name__)
 
     def __str__(self) -> str:
-        return "ITK viewer plugin manual segmentation"
+        return "ITK viewer plugin SAM segmentation"
+    
     def get_segmentation_options(self, parent):
         self.layer_height = 1
         self.sam_model = sam_model_registry[self.model_type](checkpoint=os.path.join("models", self.checkpoint))
@@ -118,8 +119,7 @@ class SAM_segmentation:
 
     def update_layer(self):
         self.layer_height = int(self.layer_entry.get())
-        logging.info("update layer to %s", self.layer_height)
-        self.stop_add()
+        logging.debug("update layer to %s", self.layer_height)
         self.parent.focus_set()
         
 
