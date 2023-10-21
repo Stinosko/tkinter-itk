@@ -85,7 +85,7 @@ class ITKviewerFrame(tk.Frame):
         # self.frame.bind('<Configure>', lambda event: self.update_image_frame())
         self.bind('<FocusIn>', self.on_focus_in)
         # self.bind('<FocusOut>', self.on_focus_out)
-        self.image_label.bind('<Button-3>', self.add_point_annotation)
+        self.image_label.bind('<Button-3>', self.toggle_point_annotation)
 
     def on_focus_in(self, event):
         self.configure(bg="red")
@@ -414,7 +414,7 @@ class ITKviewerFrame(tk.Frame):
         logging.debug("visible_annotations: %s", visible_annotations)
         return visible_annotations
     
-    def add_point_annotation(self, event):
+    def toggle_point_annotation(self, event):
         """placeholder"""
         if self.is_mouse_on_image(event):
             logging.debug("add_point_annotation")
@@ -496,5 +496,5 @@ class ITKviewerFrame(tk.Frame):
             # print("on image")
             return True
         else:
-            print("not on image")
+            # print("not on image")
             return False
