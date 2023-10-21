@@ -198,12 +198,14 @@ class ITKviewerFrame(tk.Frame):
     def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None, serie_ID: str = None, update_image: bool = True):
         """placeholder"""
         logging.info("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
+        self.annotation_manager.delete_all_serie_ID_annotations(self.serie_ID)
+        self.annotation_cache = {}
+        
         if ITK_image is not None:
             self.ITK_image = ITK_image
         self.serie_ID = serie_ID
         # print("serie_ID", serie_ID)
         self.slice_index = 0
-        self.annotation_cache = {}
 
         self.center_X = 0
         self.center_Y = 0
@@ -414,10 +416,20 @@ class ITKviewerFrame(tk.Frame):
     
     def add_point_annotation(self, event):
         """placeholder"""
-        logging.debug("add_point_annotation")
-        x, y = self.get_mouse_location_dicom(event)
-        self.annotation_manager.add_annotations_serie(self.serie_ID, Annotation_point, coords = [x, y, self.slice_index])
-        self.update_image()
+        if self.is_mouse_on_image(event):
+            logging.debug("add_point_annotation")
+            x, y = self.get_mouse_location_dicom(event)
+            self.annotation_manager.add_annotations_serie(self.serie_ID, Annotation_point, coords = [x, y, self.slice_index], color = "green", size = 5)
+            self.update_image()
+        
+        else:
+            logging.debug("not on annotation")
+            annotation_under_mouse = self.annototation_under_mouse(event)
+            if len(annotation_under_mouse) > 0:
+                logging.debug("annotation under mouse")
+                for annotation in annotation_under_mouse:
+                    self.annotation_manager.delete_annotation_ID(serie_ID = self.serie_ID, annotation_ID = annotation.get_unique_id())
+                self.update_image()
 
     def update_canvas_annotations(self):
         """placeholder"""
@@ -449,7 +461,7 @@ class ITKviewerFrame(tk.Frame):
                     del self.annotation_cache[annotation_unique_id]
             
 
-    def is_mouse_on_annototation(self, event):
+    def annototation_under_mouse(self, event):
         """placeholder"""
         visible_annotations = self.get_visible_annotations()
         x, y = event.x, event.y
@@ -457,18 +469,18 @@ class ITKviewerFrame(tk.Frame):
 
         if len(canvas_ids) == 0:
             
-            return False
-
-        if canvas_ids == [self.canvas_image_id]:
-            return False
+            return []
+        elif canvas_ids == [self.canvas_image_id]:
+            return []
         
-
-        for annotation in visible_annotations:
-            self.annotation_cache[annotation]
-            coords = annotation.get_ITK_coords()
-            if coords[0] == x and coords[1] == y and coords[2] == self.slice_index:
-                return True
-        return False
+        else:
+            annotations_under_mouse = []
+            for canvas_id in canvas_ids:
+                for annotation in visible_annotations:
+                    if canvas_id in self.annotation_cache[annotation.get_unique_id()]:
+                        annotations_under_mouse.append(annotation)
+            return annotations_under_mouse
+        
     
 
     def is_mouse_on_image(self, event):
