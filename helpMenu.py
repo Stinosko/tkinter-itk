@@ -19,11 +19,11 @@ class HelpMenu(tk.Menu):
         self.add_command(label="About", command=donothing)
         
     def display_DICOM_info(self):
-        print("DICOM info")
-        if self.parent.np_CT_array is None:
-            logging.warning("no image loaded")
+        active_serrie_ID = self.parent.ITKviewer.active_widget.serie_ID
+        if active_serrie_ID is None:
+            logging.warning("no active serie")
             return
-        
+
         self.top = tk.Toplevel(self.parent)   
         # set minimum window size value
         self.top.minsize(644, 400)
@@ -38,9 +38,11 @@ class HelpMenu(tk.Menu):
         scrollbar.grid(row=0,column=0,sticky=tk.NSEW)
         text.grid(row=0,column=1)
 
+        reader = self.parent.DICOM_serie_manager.get_serie_reader(active_serrie_ID)
+
         txt = "DICOM info of {}".format(self.parent.filemenu.get_filename())
-        for k in self.parent.reader.GetMetaDataKeys(slice = 1):
-            v = self.parent.reader.GetMetaData(slice = 1, key = k)
+        for k in reader.GetMetaDataKeys(slice = 1):
+            v = reader.GetMetaData(slice = 1, key = k)
             txt += f"({k}) = \"{v}\" \n"
         
 
