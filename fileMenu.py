@@ -14,7 +14,7 @@ class FileMenu(tk.Menu):
     def initialize(self):
         """ Initiliaze menu bar """
         self.add_command(label="Open", command = self.file_opener)
-        self.add_command(label="Save", command=self.get_filename)
+        # self.add_command(label="Save", command=self.get_filename)
         self.add_separator()
         self.add_command(label="Exit", command=self.master.quit)
 

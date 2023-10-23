@@ -15,6 +15,7 @@ from ImagesFrameManager import imagesFrameManager, example_frame_list, example_s
 from DICOM_serie_manager import DICOM_serie_manager
 from segmentation_serie_manager import Segmentation_serie_manager
 from Annotation_manager import Annotation_manager
+from segmentationMenu import SegemntationMenu
 #import progressbar
 
 
@@ -75,7 +76,12 @@ class MainWindow(ttk.Frame):
         self.menubar = Menu(self.master)
         
         self.filemenu = FileMenu(self, self.menubar)
-        self.menubar.add_cascade(label="File", menu=self.filemenu)
+        self.menubar.add_cascade(label="Dicom", menu=self.filemenu)
+
+        self.segmentationmenu = SegemntationMenu(self, self.menubar)
+        self.menubar.add_cascade(label="Segmentation", menu=self.segmentationmenu)
+
+        self.menubar.add_separator()
 
         self.helpmenu = HelpMenu(self, self.menubar)
         self.menubar.add_cascade(label="Help", menu=self.helpmenu)
@@ -129,7 +135,16 @@ class MainWindow(ttk.Frame):
         logging.info(f'Segmentation mode changed to: {self.current_segmentation_mode.get()}')
         
 
+    def save_segmentations(self):
+        """ Placeholder"""
+        logging.info('Saving segmentations')
+        self.segmentation_serie_manager.save_segmentations(location = self.segmentationmenu.segmentation_folder)
 
+    def load_segmentations(self):
+        """ Placeholder"""
+        logging.info('Loading segmentations')
+        self.segmentation_serie_manager.load_segmentations(location = self.segmentationmenu.segmentation_folder)
+        
 
 def donothing():
     """ Place holder callback"""
