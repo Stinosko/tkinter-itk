@@ -58,6 +58,16 @@ def clone_widget(widget, master=None):
 
     return cloned
 
+def normalize_np_array_between_0_and_255(np_array):
+    minimum_hu = np_array.min()
+    maximum_hu  = np_array.max()
+    
+    np_array[np_array < minimum_hu] = minimum_hu
+    np_array[np_array > maximum_hu] = maximum_hu
+    np_array = np.divide(np_array - np_array.min(), (np_array.max() - np_array.min()))*255
+    np_array = np_array.astype(np.uint8)
+    return np_array
+
 class DICOM_serie_instance(PatchedFrame):
     """placeholder"""
     def __init__(self, mainframe, DICOM_DIR, serie_ID, reader, **kwargs):
@@ -68,22 +78,39 @@ class DICOM_serie_instance(PatchedFrame):
         self.reader = reader
         self.ITK_image = None # preserving RAM if entire serie is not needed
 
-        self.total_slices = len(self.reader.GetFileNames())
-        self.preview_reader = sitk.ImageFileReader()
-        self.preview_reader.SetFileName(self.reader.GetFileNames()[round(self.total_slices/2) - 1])
-        self.preview_ITK_image = self.preview_reader.Execute()
-        self.preview_image = sitk.GetArrayFromImage(self.preview_ITK_image)
+        if self.reader.GetImageIO() == "":
+            self.total_slices = len(self.reader.GetFileNames())
+            self.preview_reader = sitk.ImageFileReader()
+            self.preview_reader.SetFileName(self.reader.GetFileNames()[round(self.total_slices/2) - 1])
+            self.preview_ITK_image = self.preview_reader.Execute()
+            
 
-        self.preview_image = self.preview_image[0,:,:]
-        self.preview_image = self.preview_image.astype(np.uint8)
-        self.preview_image = Image.fromarray(self.preview_image)
-        self.preview_image = ImageTk.PhotoImage(self.preview_image)
+            self.preview_image = sitk.GetArrayFromImage(self.preview_ITK_image)
+            self.preview_image = normalize_np_array_between_0_and_255(self.preview_image[0,:,:])
+            self.preview_image = self.preview_image.astype(np.uint8)
+            self.preview_image = Image.fromarray(self.preview_image)
+            self.preview_image = ImageTk.PhotoImage(self.preview_image)
+
+        else:
+            self.ITK_image = self.reader.Execute()[:,:,:,0]
+            self.ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
+            self.ITK_image.SetOrigin((0,0,0))
+            self.total_slices = self.ITK_image.GetSize()[-1]
+            self.preview_reader = None
+            self.preview_ITK_image = None
+
+            self.preview_image = sitk.GetArrayFromImage(self.ITK_image[:,:,round(self.total_slices/2) - 1])
+            
+            self.preview_image = normalize_np_array_between_0_and_255(self.preview_image)
+            self.preview_image = self.preview_image.astype(np.uint8)
+            self.preview_image = Image.fromarray(self.preview_image)
+            self.preview_image = ImageTk.PhotoImage(self.preview_image)
 
         self.preview_label = Label(self, image=self.preview_image, width=150, height=150)
         self.preview_label.grid(row=0, column=0, sticky='w')
         self.config(width=125)
 
-        self.button = ttk.Button(self, text=self.preview_reader.GetMetaData(key = "0020|000e"))
+        self.button = ttk.Button(self, text=self.serie_ID)
         self.button.grid(row=1, column=0)
 
         self.make_draggable()
@@ -98,6 +125,7 @@ class DICOM_serie_instance(PatchedFrame):
         DICOM_serie_instance = re.search("(.*)(DICOM_serie_instance)(\\d+)?".lower(), str(event.widget)).group()
         self.drag_widget = clone_widget(self._nametowidget(DICOM_serie_instance).preview_label, master=self._nametowidget("."))
         self.drag_widget.serie_ID = self._nametowidget(DICOM_serie_instance).serie_ID
+        self.drag_widget.ITK_image = self._nametowidget(DICOM_serie_instance).ITK_image
         # print(self.drag_widget.serie_ID)
         self.drag_widget._drag_start_x = event.x
         self.drag_widget._drag_start_y = event.y
@@ -121,7 +149,8 @@ class DICOM_serie_instance(PatchedFrame):
         print(itkviewerframe)
         itkviewerframe = self._nametowidget(itkviewerframe)
         serie_ID = self.drag_widget.serie_ID
-        itkviewerframe.load_new_CT(serie_ID = serie_ID)
+        ITK_image = self.drag_widget.ITK_image
+        itkviewerframe.load_new_CT(serie_ID = serie_ID, ITK_image = ITK_image)
 
     def get_serie_length(self):
         return self.total_slices
@@ -138,8 +167,11 @@ class DICOM_serie_instance(PatchedFrame):
             return self.ITK_image[:,:,slice_number]
     
     def get_serie_size(self):
-        size = list(self.preview_reader.GetSize())
-        size[-1] = self.total_slices
+        if self.ITK_image is None:
+            size = list(self.preview_reader.GetSize())
+            size[-1] = self.total_slices
+        else:
+            size = self.ITK_image.GetSize()
         return tuple(size)
     
     def get_serie_image(self):

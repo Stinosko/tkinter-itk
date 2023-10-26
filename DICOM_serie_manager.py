@@ -101,7 +101,7 @@ class DICOM_serie_manager(PatchedFrame):
         self.load_DICOM_serie(DICOM_DIR = self.DICOM_DIR)
         self.set_preview_frames()
 
-    def load_DICOM_serie(self, DICOM_DIR = None):
+    def load_DICOM_serie(self, DICOM_DIR = None, image_name = None):
         if DICOM_DIR is None:
             logging.warning("DICOM_DIR is None")
             return
@@ -109,7 +109,7 @@ class DICOM_serie_manager(PatchedFrame):
         series_file_names = {}
         series_IDs = GetGDCMSeriesIDs_recursive(DICOM_DIR, self.reader)
         # Check that we have at least one series
-        if len(series_IDs) > 0:
+        if len(series_IDs) > 0 and image_name is None:
             for serie_ID in series_IDs:
                 dicom_names = sitk.ImageSeriesReader_GetGDCMSeriesFileNames(DICOM_DIR, serie_ID, recursive =True)
                 reader = sitk.ImageSeriesReader()
@@ -117,10 +117,38 @@ class DICOM_serie_manager(PatchedFrame):
                 reader.LoadPrivateTagsOn()
                 reader.MetaDataDictionaryArrayUpdateOn()
                 series_file_names[serie_ID] = reader
+        elif image_name is not None:
+            logging.warning("Untested code!")
+            reader = sitk.ImageSeriesReader()
+            reader.SetFileNames([image_name])
+            reader.LoadPrivateTagsOn()
+            reader.MetaDataDictionaryArrayUpdateOn()
+            series_file_names[image_name] = reader
         else:
             logging.warning("Data directory does not contain any DICOM series.")
             return
         
+        self.series_file_names = series_file_names
+
+    def load_image_serie(self, image, image_name):
+        if image is None:
+            logging.warning("Image is None")
+            return
+        self.DICOM_DIR = os.path.join(os.getcwd(), ".temp")
+        writer = sitk.ImageFileWriter()
+        
+        writer.KeepOriginalImageUIDOn()
+        writer.SetImageIO("NiftiImageIO")
+        writer.SetFileName(os.path.join(self.DICOM_DIR, image_name + ".nii.gz"))
+        writer.Execute(image)
+
+        series_file_names = {}
+        reader = sitk.ImageSeriesReader()
+        reader.SetImageIO("NiftiImageIO")
+        reader.SetFileNames([os.path.join(self.DICOM_DIR, image_name)])
+        reader.LoadPrivateTagsOn()
+        reader.MetaDataDictionaryArrayUpdateOn()
+        series_file_names[image_name] = reader
         self.series_file_names = series_file_names
 
     def get_serie_reader(self, serie_ID):
@@ -134,8 +162,8 @@ class DICOM_serie_manager(PatchedFrame):
         
         self.DICOM_serie_instances = {}
         for i, serie_ID in enumerate(self.get_serie_IDs()):
-                self.DICOM_serie_instances[serie_ID] = DICOM_serie_instance(self.frame_buttons, self.DICOM_DIR, serie_ID, self.get_serie_reader(serie_ID))
-                self.DICOM_serie_instances[serie_ID].grid(row=i, column=0, sticky='news')
+            self.DICOM_serie_instances[serie_ID] = DICOM_serie_instance(self.frame_buttons, self.DICOM_DIR, serie_ID, self.get_serie_reader(serie_ID))
+            self.DICOM_serie_instances[serie_ID].grid(row=i, column=0, sticky='news')
         
         # Update buttons frames idle tasks to let tkinter calculate frame sizes
         self.update_idletasks()
@@ -143,9 +171,9 @@ class DICOM_serie_manager(PatchedFrame):
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
 
     def reset_preview_frames(self):
-        for serie_ID in self.get_serie_IDs():
-            if serie_ID in self.DICOM_serie_instances:
-                self.DICOM_serie_instances[serie_ID].destroy()
+        logging.warning("reset_preview_frames: ", self.DICOM_serie_instances) 
+        for serie_ID in self.DICOM_serie_instances:
+            self.DICOM_serie_instances[serie_ID].destroy()
         self.set_preview_frames()
 
     def get_serie_length(self, serie_ID):

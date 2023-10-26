@@ -22,6 +22,9 @@ example_frame_list = [
     ITKviewerFrame,
     ITKsegmentationFrame,
 ]
+
+example_dual_frame_list = [ITKsegmentationFrame, ITKviewerFrame]
+
 example_segmentation_frame_list = [ITKsegmentationFrame,ITKsegmentationFrame]
 example_only_frame_list = [ITKviewerFrame,ITKviewerFrame]
 

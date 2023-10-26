@@ -197,7 +197,7 @@ class ITKviewerFrame(tk.Frame):
     
     def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None, serie_ID: str = None, update_image: bool = True):
         """placeholder"""
-        logging.info("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
+        logging.debug("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
         self.annotation_manager.delete_all_serie_ID_annotations(self.serie_ID)
         self.annotation_cache = {}
         
