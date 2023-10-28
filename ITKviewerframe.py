@@ -233,9 +233,9 @@ class ITKviewerFrame(tk.Frame):
     def __zoom(self, event):
         logging.debug("zooming")
         self.focus_set()
-        if event.delta == -120:
+        if event.delta == -120 or event.num == 5:
             self.zoom_out()
-        if event.delta == 120:
+        if event.delta == 120 or event.num == 4:
             self.zoom_in()
 
     def next_slice(self):
