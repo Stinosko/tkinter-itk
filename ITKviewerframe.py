@@ -224,9 +224,10 @@ class ITKviewerFrame(tk.Frame):
         logging.debug("Scrolling")
         self.focus_set()
         self.image_needs_updating = True
-        if event.delta == -120:  # scroll down, smaller
+
+        if event.delta == -120 or event.num == 5:  # scroll down, smaller
             self.previous_slice()
-        if event.delta == 120:  # scroll up, bigger
+        if event.delta == 120 or event.num == 4:  # scroll up, bigger
             self.next_slice()
        
     def __zoom(self, event):
