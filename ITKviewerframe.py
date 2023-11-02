@@ -58,6 +58,10 @@ class ITKviewerFrame(tk.Frame):
         self.initialize()
         self.image_label.grid(row=0, column=0, sticky="news", padx=5, pady=5)
 
+        self.slider = ttk.Scale(self.frame, from_=0, to=self.ITK_image.GetSize()[2] - 1, orient='vertical', command=self.slider_changed)
+        self.slider.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
+        self.slider.set(self.slice_index)
+
         self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
         self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
         
@@ -229,6 +233,9 @@ class ITKviewerFrame(tk.Frame):
         if level is not None:
             self.level = level
 
+        self.slider.config(to=self.ITK_image.GetSize()[2] - 1)
+        self.slider.set(self.slice_index)
+
         self.image_needs_updating = True
         if update_image:
             self.update_image()
@@ -262,6 +269,7 @@ class ITKviewerFrame(tk.Frame):
         else:
             if self.slice_index >= self.ITK_image.GetSize()[2]:
                 self.slice_index = self.ITK_image.GetSize()[2] - 1
+        self.slider.set(self.slice_index)
         self.update_image()
         
     def previous_slice(self):
@@ -271,6 +279,7 @@ class ITKviewerFrame(tk.Frame):
         
         if self.slice_index < 0:
             self.slice_index = 0
+        self.slider.set(self.slice_index)
         self.update_image()
         
 
@@ -544,3 +553,7 @@ class ITKviewerFrame(tk.Frame):
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
         self.image_label.itemconfigure(self.canvas_image_id, image=self.image)
         
+
+    def slider_changed(self, event):
+        self.slice_index = int(self.slider.get())
+        self.update_image()
