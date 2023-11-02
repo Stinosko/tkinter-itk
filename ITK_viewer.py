@@ -65,11 +65,12 @@ class MainWindow(ttk.Frame):
     segmentation_modes = ["None"]
     current_segmentation_mode = segmentation_modes[0]
 
-    def __init__(self, mainframe):
+    def __init__(self, mainframe, threading = False):
         """ Initialize the main Frame """
         ttk.Frame.__init__(self, master=mainframe)
         self.load_plugins()
         self.mainframe = mainframe
+        self.threading = threading
         self.master.title('ITK viewer')
         self.master.geometry('800x800')  # size of the main window
         self.current_segmentation_mode = tk.StringVar(self.master)
@@ -99,7 +100,7 @@ class MainWindow(ttk.Frame):
         self.annotation_manager = Annotation_manager(self, self.DICOM_serie_manager)
         self.segmentation_serie_manager = Segmentation_serie_manager(self, self.DICOM_serie_manager)
 
-        self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = example_dual_frame_list, bg = "yellow", parent=self) # create ITK Frame
+        self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = example_dual_frame_list, bg = "yellow", parent=self, threading=threading) # create ITK Frame
         # self.ITKviewer = ITKviewerFrame(self.mainframe, bg = "red") # create ITK Frame
         # self.ITKviewer = ITKsegmentationFrame(self.mainframe, bg = "red") # create ITK Frame
         self.ITKviewer.grid(row=1, column=1, columnspan = 2, sticky= tk.N + tk.S + tk.E + tk.W)  # show ITK 
@@ -150,7 +151,11 @@ class MainWindow(ttk.Frame):
         """ Placeholder"""
         logging.info('Loading segmentations')
         self.segmentation_serie_manager.load_segmentations(location = self.segmentationmenu.segmentation_folder)
+    
+    async def update(self) -> None:
         
+        await self.ITKviewer.update_image_if_needed()
+        return super().update()
 
 def donothing():
     """ Place holder callback"""
@@ -158,6 +163,11 @@ def donothing():
 
 if __name__ == "__main__":        
     ITKapp = tk.Tk()
-    app = MainWindow(ITKapp)
+    app = MainWindow(ITKapp, threading=True)
     ITKapp.mainloop()
+    # while True:
+    #     try:
+    #         app.update()
+    #     except KeyboardInterrupt:
+    #         break
 

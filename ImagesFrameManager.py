@@ -8,6 +8,7 @@ from Utils import timer_func, PatchedFrame
 import SimpleITK as sitk
 from ITKviewerframe import ITKviewerFrame
 from ITKsegmentationframe import ITKsegmentationFrame
+import asyncio
 
 example = [
     [[1,
@@ -51,7 +52,7 @@ def create_concept_from_nested_list(mainframe, nested_list, horizontal= True, **
             result += [1]
     return result
 
-def create_image_viewers_from_nested_list(mainframe, nested_list, horizontal= True, position = 0, FrameManager = None, **kwargs):
+def create_image_viewers_from_nested_list(mainframe, nested_list, horizontal= True, position = 0, FrameManager = None, threading = False, **kwargs):
     """placeholder"""
     
     if panedwindows:
@@ -71,10 +72,10 @@ def create_image_viewers_from_nested_list(mainframe, nested_list, horizontal= Tr
     result = []
     for i, sub_item in enumerate(nested_list):
         if isinstance(sub_item, list): 
-            result_sublist = create_image_viewers_from_nested_list(frame, sub_item, horizontal= not horizontal, position = i, FrameManager = FrameManager, **kwargs)
+            result_sublist = create_image_viewers_from_nested_list(frame, sub_item, horizontal= not horizontal, position = i, FrameManager = FrameManager, threading = threading, **kwargs)
             result += [result_sublist]
         else:
-            image_frame = sub_item(frame, FrameManager=FrameManager, **kwargs)
+            image_frame = sub_item(frame, FrameManager=FrameManager, threading = threading, **kwargs)
             image_frame.grid_propagate(0) #not essential when grid is used correctly else the frames will grow indefinitely or "attacking" each other
             
             if panedwindows:
@@ -136,14 +137,16 @@ def update_ITKviewerFrames_from_nested_list(nested_list, horizontal= True, **kwa
         if isinstance(sub_item, list):
             update_ITKviewerFrames_from_nested_list(sub_item, horizontal= not horizontal, **kwargs)
         else:
-            # sub_item.columnconfigure(0, weight=1)
-            # sub_item.rowconfigure(0, weight=1)
-            # sub_item.frame.columnconfigure(0, weight=1)
-            # sub_item.frame.rowconfigure(0, weight=1)
-            # sub_item.image_label.columnconfigure(0, weight=1)
-            # sub_item.image_label.rowconfigure(0, weight=1)
             sub_item.update_image()
         
+async def update_images_if_needed_from_nested_list(nested_list, horizontal= True, **kwargs):
+    frame = nested_list[0]
+    for i, sub_item in enumerate(nested_list[1:]):
+        if isinstance(sub_item, list):
+            update_images_if_needed_from_nested_list(sub_item, horizontal= not horizontal, **kwargs)
+        else:
+            asyncio.get_running_loop().create_task(sub_item.update_image_if_needed())
+
 def get_first_frame_from_nested_list(nested_list):
     for sub_item in nested_list[1:]:
         if isinstance(sub_item, list):
@@ -153,7 +156,7 @@ def get_first_frame_from_nested_list(nested_list):
 
 
 class imagesFrameManager(ttk.PanedWindow):
-    def __init__(self, mainframe, image_label_layout: list = [0], parent = None, **kwargs):
+    def __init__(self, mainframe, image_label_layout: list = [0], parent = None, threading = False, **kwargs):
         """ Initialize the ITK viewer Frame """
         super().__init__(mainframe)
         self.parent = parent
@@ -167,7 +170,7 @@ class imagesFrameManager(ttk.PanedWindow):
         # self.frame.columnconfigure(tuple([n for n in range(len(image_label_layout[0]))]), weight=1)
         self.frame.columnconfigure(0, weight=1)
 
-        self.images_labels = create_image_viewers_from_nested_list(self.frame, image_label_layout, FrameManager = self,**kwargs)
+        self.images_labels = create_image_viewers_from_nested_list(self.frame, image_label_layout, FrameManager = self, threading = threading, **kwargs)
         self.active_widget = get_first_frame_from_nested_list(self.images_labels)
         self.active_widget.focus_set()
         # self.active_widget.on_focus_in()
@@ -192,6 +195,8 @@ class imagesFrameManager(ttk.PanedWindow):
                 self.images_labels[x,y].set_ImageSeries(sitk.ImageSeriesReader_GetGDCMSeriesFileNames(
             data_directory, series_IDs[x*y]))
 
+    async def update_image_if_needed(self) -> None:
+        await update_images_if_needed_from_nested_list(self.images_labels)
         
     def update_configure(self):
         self.frame.update_idletasks()

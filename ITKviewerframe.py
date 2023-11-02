@@ -9,16 +9,20 @@ import SimpleITK as sitk
 from reloading import reloading
 from Utils import PatchedLabel, PatchedCanvas
 from Annotation_point import Annotation_point
+from threading_tk import TkRepeatingTask, BackgroundTask
+
+
 class ITKviewerFrame(tk.Frame):    
     """ ITK viewer Frame """
     #needed for copying the frame
     custom_options = ("FrameManager",)
 
-    def __init__(self, parent, FrameManager = None,  **kwargs):
+    def __init__(self, parent, FrameManager = None, threading = False, **kwargs):
         """ Initialize the ITK viewer Frame """
         super().__init__(parent, **kwargs)
         self.parent = parent
         self.FrameManager = FrameManager
+        self.threading = threading
         self.mainframe = self.FrameManager.parent
         self.annotation_manager = self.FrameManager.parent.annotation_manager
         self.annotation_cache = {}
@@ -63,6 +67,10 @@ class ITKviewerFrame(tk.Frame):
 
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
+
+        if self.threading:
+            self.bgTask = BackgroundTask( self._update_image )
+            self.bgTask.start()
 
     def initialize(self):
         """ placeholder """
@@ -172,8 +180,13 @@ class ITKviewerFrame(tk.Frame):
 
     def update_image(self):
         """placeholder"""
-        self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
-        self.image_label.itemconfigure(self.canvas_image_id, image=self.image)
+        self.image_needs_updating = True
+        if self.threading:
+            if self.bgTask.isRunning():
+                self.bgTask.stop()
+            self.bgTask.start()
+        else: 
+            self._update_image()
 
     def update_image_frame(self):
         """placeholder"""
@@ -510,3 +523,24 @@ class ITKviewerFrame(tk.Frame):
         else:
             # print("not on image")
             return False
+
+    async def update_image_if_needed(self) -> None:
+        """placeholder"""
+        if self.image_needs_updating:
+            if self.threading and self.bgTask.isRunning():
+
+                print("bgTask is  running")
+                self.image_needs_updating = True
+            elif self.threading:
+                print("bgTask is not running")
+                self.bgTask.start()
+                self.image_needs_updating = False
+            else:
+                print("not threading")
+                self._update_image()
+                self.image_needs_updating = False
+
+    def _update_image(self, isRunningFunc=None):
+        self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
+        self.image_label.itemconfigure(self.canvas_image_id, image=self.image)
+        
