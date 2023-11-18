@@ -165,3 +165,4 @@ Patient2049/
 images/
 models/
 .temp/
+*.ipynb
