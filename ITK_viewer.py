@@ -116,17 +116,19 @@ class MainWindow(ttk.Frame):
 
         self.np_CT_array = None
 
-    def new_image_input(self, image: sitk.Image = None, image_name: str = None):
+    def new_image_input(self, image: sitk.Image = None, image_name: str = None, add = False):
         """ Placeholder"""
         self.master.update_idletasks()
         logging.info('Importing patient data')
         if image is None:
             DICOM_DIR = self.filemenu.get_filename()
             logging.debug(f'Importing patient data: {DICOM_DIR}')
+            if add:
+                logging.warning(f'Adding not implemented yet for DICOM_DIR')
             self.DICOM_serie_manager.load_DICOM_serie(DICOM_DIR, image_name)
         else:
             logging.debug(f'Importing patient data: {image_name}')
-            self.DICOM_serie_manager.load_image_serie(image, image_name)
+            self.DICOM_serie_manager.load_image_serie(image, image_name, add = add)
         self.DICOM_serie_manager.reset_preview_frames()
 
     def load_plugins(self):
@@ -163,7 +165,7 @@ def donothing():
 
 if __name__ == "__main__":        
     ITKapp = tk.Tk()
-    app = MainWindow(ITKapp, threading=True)
+    app = MainWindow(ITKapp, threading=False)
     ITKapp.mainloop()
     # while True:
     #     try:

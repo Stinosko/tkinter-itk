@@ -130,11 +130,13 @@ class DICOM_serie_manager(PatchedFrame):
         
         self.series_file_names = series_file_names
 
-    def load_image_serie(self, image, image_name):
+    def load_image_serie(self, image, image_name, add = False):
         if image is None:
             logging.warning("Image is None")
             return
-        self.DICOM_DIR = os.path.join(os.getcwd(), ".temp")
+        temp_folder = os.path.join(os.getcwd(), ".temp")
+        if not add:
+            self.DICOM_DIR = temp_folder
         writer = sitk.ImageFileWriter()
         
         writer.KeepOriginalImageUIDOn()
@@ -142,14 +144,14 @@ class DICOM_serie_manager(PatchedFrame):
         writer.SetFileName(os.path.join(self.DICOM_DIR, image_name + ".nii.gz"))
         writer.Execute(image)
 
-        series_file_names = {}
+        if not add: 
+            self.series_file_names = {}
         reader = sitk.ImageSeriesReader()
         reader.SetImageIO("NiftiImageIO")
         reader.SetFileNames([os.path.join(self.DICOM_DIR, image_name)])
         reader.LoadPrivateTagsOn()
         reader.MetaDataDictionaryArrayUpdateOn()
-        series_file_names[image_name] = reader
-        self.series_file_names = series_file_names
+        self.series_file_names[image_name] = reader
 
     def get_serie_reader(self, serie_ID):
         return self.series_file_names[serie_ID]

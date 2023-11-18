@@ -179,8 +179,12 @@ class imagesFrameManager(ttk.PanedWindow):
     
     def set_active_widget(self, widget):
         """placeholder"""
+        if self.active_widget == widget:
+            logging.warning("widget is already active")
+            return
         if self.active_widget is not None:
             self.active_widget.on_focus_out()
+        widget.focus_set()
         self.active_widget = widget
 
     def set_ImageSeries(self, data_directory: str = "", series_IDs: sitk.ImageSeriesReader = None):

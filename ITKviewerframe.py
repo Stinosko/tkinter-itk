@@ -58,16 +58,16 @@ class ITKviewerFrame(tk.Frame):
         self.initialize()
         self.image_label.grid(row=0, column=0, sticky="news", padx=5, pady=5)
 
-        self.slider = ttk.Scale(self.frame, from_=0, to=self.ITK_image.GetSize()[2] - 1, orient='vertical', command=self.slider_changed)
-        self.slider.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
-        self.slider.set(self.slice_index)
-
         self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
         self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
         
         self.image_needs_updating = True
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())  # create image object
         self.canvas_image_id = self.image_label.create_image(0, 0, anchor=tk.NW, image=self.image)  # put image on canvas
+
+        self.slider = ttk.Scale(self.frame, from_=0, to=self.ITK_image.GetSize()[2] - 1, orient='vertical', command=self.slider_changed)
+        self.slider.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
+        self.slider.set(self.slice_index)
 
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
