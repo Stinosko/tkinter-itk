@@ -165,9 +165,5 @@ Patient2049/
 images/
 models/
 .temp/
-<<<<<<< HEAD
-*.ipynb
-=======
 
 *.nix
->>>>>>> 90958a4 (ignose nix files)
