@@ -167,3 +167,6 @@ models/
 .temp/
 
 *.nix
+
+*.ipynb
+!example.ipynb
