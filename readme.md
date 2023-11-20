@@ -7,4 +7,4 @@ I'm not a professional programmer, i know there is lack of comments in the code 
 
 To understand certain Tinkter behaviours i use, i kept some example scripts I found online in the Misc folder, certain advanced features are based on those.
 
-I made an example script how you can use it in a jupyter notebook.  
+I made an example.ipynb script how you can use it in a jupyter notebook.  
