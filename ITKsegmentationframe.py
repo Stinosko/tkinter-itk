@@ -53,6 +53,9 @@ class ITKsegmentationFrame(ITKviewerFrame):
     
     def zoom_itk(self, *args, **kwargs):
         """ Zoom at x,y location"""
+        self.ITK_seg_array = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True) # fix for when segementation is replaced by another image instance 
+        #TODO: find a better fix
+                                       
         NP_seg_slice = self.ITK_seg_array[:,:, self.slice_index]
         if NP_seg_slice.GetSize() != self.slice_gray_ITK_image.GetSize():
             logging.warning("Segmentation image size does not match image size")

@@ -152,6 +152,7 @@ class DICOM_serie_manager(PatchedFrame):
         reader.LoadPrivateTagsOn()
         reader.MetaDataDictionaryArrayUpdateOn()
         self.series_file_names[image_name] = reader
+        return image_name
 
     def get_serie_reader(self, serie_ID):
         return self.series_file_names[serie_ID]

@@ -209,3 +209,8 @@ class imagesFrameManager(ttk.PanedWindow):
         update_ITKviewerFrames_from_nested_list(self.images_labels)
         self.active_widget.focus_set()
         """placeholder"""
+
+    def update_images(self):
+        """placeholder"""
+        update_image_viewer_frames_from_nested_list(self.images_labels)
+        self.active_widget.focus_set()

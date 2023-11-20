@@ -46,3 +46,16 @@ class Segmentation_serie_manager:
                 self.segmentation_images[file[:-7]] = sitk.ReadImage(os.path.join(location, file))
                 self.segmentation_images[file[:-7]].CopyInformation(self.DICOM_manager.get_serie_image(file[:-7]))
                 logging.info('Loaded segmentation: ' + file[:-7])
+        self.mainframe.ITKviewer.update_images()
+
+    def load_segmentation(self, segmentation, serie_id):
+        if serie_id in self.segmentation_images:
+            logging.warning('Segmentation name already exists, overwriting')
+            
+        if serie_id not in self.DICOM_manager.get_serie_IDs():
+            logging.error('Serie ID not found')
+            return
+        self.segmentation_images[serie_id] = segmentation
+        self.segmentation_images[serie_id].CopyInformation(self.DICOM_manager.get_serie_image(serie_id))
+        logging.info('Loaded segmentation: ' + serie_id)
+        self.mainframe.ITKviewer.update_images()

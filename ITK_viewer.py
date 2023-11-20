@@ -130,6 +130,21 @@ class MainWindow(ttk.Frame):
             logging.debug(f'Importing patient data: {image_name}')
             self.DICOM_serie_manager.load_image_serie(image, image_name, add = add)
         self.DICOM_serie_manager.reset_preview_frames()
+        return image_name
+
+    def load_segmentation(self, segmentation: sitk.Image = None, serie_id: str = None):
+        """ Placeholder"""
+        self.master.update_idletasks()
+        logging.info('Importing segmentation')
+        if serie_id is None:
+            logging.error('No segmentation name given')
+            return
+        if segmentation is None:
+            logging.error('No segmentation given')
+            return
+        logging.debug(f'Importing segmentation: {serie_id}')
+        self.segmentation_serie_manager.load_segmentation(segmentation, serie_id)
+        return serie_id
 
     def load_plugins(self):
         """ Placeholder"""
