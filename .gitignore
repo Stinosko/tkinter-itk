@@ -170,3 +170,4 @@ models/
 
 *.ipynb
 !example.ipynb
+*.nii.gz

@@ -33,7 +33,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
         
         super().initialize()
     
-    def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None,**kwargs):
+    def load_new_CT(self, window: int = None, level: int = None, ITK_image: sitk.Image = None,**kwargs):
         """placeholder"""
         super().load_new_CT(window, level, ITK_image= ITK_image, update_image = False, **kwargs)
         self.seg_image_needs_update = True

@@ -212,7 +212,7 @@ class ITKviewerFrame(tk.Frame):
             for parent in parents:
                 widget._nametowidget(parent).update()
     
-    def load_new_CT(self, window: int = 600, level: int = 301, ITK_image: sitk.Image = None, serie_ID: str = None, update_image: bool = True):
+    def load_new_CT(self, window: int = None, level: int = None, ITK_image: sitk.Image = None, serie_ID: str = None, update_image: bool = True):
         """placeholder"""
         logging.debug("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
         self.annotation_manager.delete_all_serie_ID_annotations(self.serie_ID)
@@ -230,8 +230,12 @@ class ITKviewerFrame(tk.Frame):
         self.zoom_delta = 1
         if window is not None:
             self.window = window
+        else:
+            self.window = sitk.GetArrayFromImage(self.ITK_image).max() - sitk.GetArrayFromImage(self.ITK_image).min()
         if level is not None:
             self.level = level
+        else:
+            self.level = sitk.GetArrayFromImage(self.ITK_image).max() - self.window/2
 
         self.slider.config(to=self.ITK_image.GetSize()[2] - 1)
         self.slider.set(self.slice_index)
