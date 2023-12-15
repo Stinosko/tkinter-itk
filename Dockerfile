@@ -28,3 +28,4 @@ CMD ["/app/ITK_viewer.py"]
 
 ENTRYPOINT ["python3"]
 #docker run -u=$(id -u $USER):$(id -g $USER) -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:rw --rm tkinter_in_docker
+# https://towardsdatascience.com/empowering-docker-using-tkinter-gui-bf076d9e4974
