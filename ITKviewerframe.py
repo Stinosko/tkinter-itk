@@ -153,14 +153,21 @@ class ITKviewerFrame(tk.Frame):
             min_output_value = int( abs(minimum_hu) / (maximum_hu - minimum_hu) )
             minimum_hu = 0
         
-        self.slice_gray_ITK_image = sitk.IntensityWindowing(self.DICOM_image_slice,
-                                            int(minimum_hu), int(maximum_hu),
-                                            min_output_value,
-                                            max_output_value)
-        self.slice_gray_ITK_image = sitk.Cast(self.slice_gray_ITK_image, sitk.sitkUInt8)
+        if pixel_type != sitk.sitkUInt8 and pixel_type != sitk.sitkVectorUInt8:
+            self.slice_gray_ITK_image = sitk.IntensityWindowing(self.DICOM_image_slice,
+                                                int(minimum_hu), int(maximum_hu),
+                                                min_output_value,
+                                                max_output_value)
+            self.slice_gray_ITK_image = sitk.Cast(self.slice_gray_ITK_image, sitk.sitkUInt8)
+        else:
+            self.slice_gray_ITK_image = self.DICOM_image_slice
+
         np_slice_gray_image = sitk.GetArrayFromImage(self.slice_gray_ITK_image)
         
-        img_arr = Image.fromarray(np_slice_gray_image, "L").convert(img_type)
+        if pixel_type == sitk.sitkVectorUInt8:
+            img_arr = Image.fromarray(np_slice_gray_image, "RGB").convert(img_type)
+        else:
+            img_arr = Image.fromarray(np_slice_gray_image, "L").convert(img_type)
         return img_arr
     
     def get_image_slice(self, slice_index):

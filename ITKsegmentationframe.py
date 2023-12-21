@@ -63,7 +63,10 @@ class ITKsegmentationFrame(ITKviewerFrame):
             self.ITK_seg_array.CopyInformation(self.slice_gray_ITK_image)
             return
         NP_seg_slice.CopyInformation(self.slice_gray_ITK_image)
-        self.slice_ITK_image = sitk.LabelOverlay(self.slice_gray_ITK_image, NP_seg_slice, opacity=0.8)
+
+        pixel_type = self.slice_gray_ITK_image.GetPixelID()
+        if pixel_type != sitk.sitkVectorUInt8 and pixel_type != sitk.sitkVectorUInt16 and pixel_type != sitk.sitkVectorUInt32 and pixel_type != sitk.sitkVectorUInt64:
+            self.slice_ITK_image = sitk.LabelOverlay(self.slice_gray_ITK_image, NP_seg_slice, opacity=0.8)
         return super().zoom_itk(*args, **kwargs)        
 
 
