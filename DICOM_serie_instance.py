@@ -92,7 +92,20 @@ class DICOM_serie_instance(PatchedFrame):
             self.preview_image = ImageTk.PhotoImage(self.preview_image)
 
         else:
-            self.ITK_image = self.reader.Execute()[:,:,:,0]
+            self.ITK_image = self.reader.Execute()
+            if self.ITK_image.GetDimension() == 4:
+                self.ITK_image = self.ITK_image[:,:,:,0]
+            elif self.ITK_image.GetDimension() > 4:
+                logging.error("Image dimension is greater than 4. Cannot be displayed.")
+                raise ValueError("Image dimension is greater than 4. Cannot be displayed.")
+            elif self.ITK_image.GetDimension() == 2:
+                self.ITK_image = sitk.JoinSeries([self.ITK_image])
+            elif self.ITK_image.GetDimension() == 3:
+                pass
+            elif self.ITK_image.GetDimension() == 1:
+                logging.error("Image dimension is less than 2. Cannot be displayed.")
+                raise ValueError("Image dimension is less than 2. Cannot be displayed.")
+            
             self.ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
             self.ITK_image.SetOrigin((0,0,0))
             self.total_slices = self.ITK_image.GetSize()[-1]
