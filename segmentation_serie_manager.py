@@ -37,6 +37,9 @@ class Segmentation_serie_manager:
             self.add_segmentation_serie(serie_ID)
         return self.segmentation_images[serie_ID]
     
+    def get_segmentation(self, serie_ID, add_if_not_exist=False):
+        return self.get_image(serie_ID, add_if_not_exist)
+
     def save_segmentations(self, location):
         for serie_ID in self.segmentation_images:
             sitk.WriteImage(self.segmentation_images[serie_ID], os.path.join(location, serie_ID + '.nii.gz'))

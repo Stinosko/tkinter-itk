@@ -85,6 +85,13 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.ITK_seg_image[:, :, self.slice_index] = set_mask_value(self.ITK_seg_image[:, :, self.slice_index], mask, layer_height) 
         self.seg_image_needs_update = True
         self.update_image()
+    
+    def set_segmentation_preview_mask_current_slice(self, layer_height: int, mask: np.ndarray):
+        preview_image = self.segmentation_serie_manager.get_segmentation(self.serie_ID, add_if_not_exist=True).__copy__()
+        preview_image[:, :, self.slice_index] = set_mask_value(preview_image[:, :, self.slice_index], mask, layer_height)
+        self.segmentation_serie_manager.set_preview(self.serie_ID, preview_image)
+        self.seg_image_needs_update = True
+        self.update_image()
 
     def clear_segmentation_mask_current_slice(self, layer_height: int = None):
         if layer_height is None:
@@ -105,3 +112,5 @@ class ITKsegmentationFrame(ITKviewerFrame):
     def get_NP_seg_slice(self):
         return sitk.GetArrayFromImage(self.ITK_seg_image[:,:, self.slice_index])
     
+    def accept_preview(self):
+        self.segmentation_serie_manager.accept_preview(self.serie_ID)
