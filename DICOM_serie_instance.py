@@ -145,8 +145,11 @@ class DICOM_serie_instance(PatchedFrame):
         self._nametowidget(".").update_idletasks()
         target_widget = self._nametowidget(".").winfo_containing(x,y)
         
-        itkviewerframe = re.search("(.*)(itkviewerframe|itksegmentationframe)(\\d+)?".lower(), str(target_widget)).group()
-        print(itkviewerframe)
+        itkviewerframe = re.search("(.*)(itkviewerframe|itksegmentationframe)(\\d+)?".lower(), str(target_widget))
+        if itkviewerframe is None:
+            return
+        itkviewerframe = itkviewerframe.group()
+        logging.debug(f"Target widget: {itkviewerframe}")
         itkviewerframe = self._nametowidget(itkviewerframe)
         serie_ID = self.drag_widget.serie_ID
         ITK_image = self.drag_widget.ITK_image
