@@ -297,6 +297,31 @@ class AutoScrollbar(tk.Scrollbar):
 
 
 
+max_number_pixel_type = {
+    "uint8": 255,
+    "uint16": 65535,
+    "uint32": 4294967295,
+    "uint64": 18446744073709551615,
+    "int8": 127,
+    "int16": 32767,
+    "int32": 2147483647,
+    "int64": 9223372036854775807,
+}
+
+
+max_number_pixel_type_sitk = {
+    sitk.sitkUInt8: 255,
+    sitk.sitkUInt16: 65535,
+    sitk.sitkUInt32: 4294967295,
+    sitk.sitkUInt64: 18446744073709551615,
+    sitk.sitkInt8: 127,
+    sitk.sitkInt16: 32767,
+    sitk.sitkInt32: 2147483647,
+    sitk.sitkInt64: 9223372036854775807,
+}
+
+
+
 if __name__ == "__main__":
     create_DICOM_files()
     # create_NII_file()
