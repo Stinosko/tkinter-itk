@@ -16,6 +16,8 @@ class Segmentation_serie_manager:
         self.mainframe = mainframe
         self.DICOM_manager = DICOM_manager
         self.segmentation_images = {}
+        self.segmentation_stats = {}
+        self.segmentation_preview_images = {}
 
     def add_segmentation_serie(self, serie_ID):
         if serie_ID in self.segmentation_images:
@@ -57,5 +59,36 @@ class Segmentation_serie_manager:
             return
         self.segmentation_images[serie_id] = segmentation
         self.segmentation_images[serie_id].CopyInformation(self.DICOM_manager.get_serie_image(serie_id))
+        self.segmentation_preview_images[serie_id] = None
         logging.info('Loaded segmentation: ' + serie_id)
         self.mainframe.ITKviewer.update_images()
+
+
+    def get_stats(self, serie_ID):
+        """placeholder"""
+        self.segmentation_stats[serie_ID] = sitk.LabelStatisticsImageFilter()
+        self.segmentation_stats[serie_ID].Execute(self.segmentation_images[serie_ID], self.DICOM_manager.get_serie_image(serie_ID))
+        return self.segmentation_stats[serie_ID]
+    
+    def set_preview(self, serie_ID, preview: sitk.Image = None):
+        if preview is None:
+            logging.warning('No preview to set')
+            return
+        self.segmentation_preview_images[serie_ID] = preview
+
+    def get_preview(self, serie_ID):
+        if serie_ID not in self.segmentation_preview_images:
+            logging.warning('No preview to get')
+            return None
+        return self.segmentation_preview_images[serie_ID]
+    
+    def reset_preview(self, serie_ID):
+        self.segmentation_preview_images[serie_ID] = None
+
+    
+    def accept_preview(self, serie_ID):
+        if serie_ID not in self.segmentation_preview_images:
+            logging.warning('No preview to accept')
+            return
+        self.segmentation_images[serie_ID] = self.segmentation_preview_images[serie_ID]
+        self.reset_preview(serie_ID)

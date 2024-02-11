@@ -26,10 +26,10 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.segmentation_serie_manager = self.FrameManager.parent.segmentation_serie_manager
 
         if self.serie_ID is None:
-            self.ITK_seg_array = sitk.Image(self.ITK_image.GetSize(), sitk.sitkUInt8)
-            self.ITK_seg_array.CopyInformation(self.ITK_image)
+            self.ITK_seg_image = sitk.Image(self.ITK_image.GetSize(), sitk.sitkUInt8)
+            self.ITK_seg_image.CopyInformation(self.ITK_image)
         else:
-            self.ITK_seg_array = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True)
+            self.ITK_seg_image = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True)
         
         super().initialize()
     
@@ -38,29 +38,34 @@ class ITKsegmentationFrame(ITKviewerFrame):
         super().load_new_CT(window, level, ITK_image= ITK_image, update_image = False, **kwargs)
         self.seg_image_needs_update = True
         if self.serie_ID is None:
-            self.ITK_seg_array = sitk.Image(ITK_image.GetSize(), sitk.sitkUInt8)
-            self.ITK_seg_array.CopyInformation(ITK_image)
+            self.ITK_seg_image = sitk.Image(ITK_image.GetSize(), sitk.sitkUInt8)
+            self.ITK_seg_image.CopyInformation(ITK_image)
         else:
-            self.ITK_seg_array = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True)
+            self.ITK_seg_image = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True)
         self.update_image()
     
     def get_image_from_seg_array(self):
         """placeholder"""
-        image_segmentation_array = sitk.GetArrayFromImage(sitk.LabelToRGB(self.ITK_seg_array[:,:, self.slice_index]))
+        image_segmentation_array = sitk.GetArrayFromImage(sitk.LabelToRGB(self.ITK_seg_image[:,:, self.slice_index]))
 
         return Image.fromarray(image_segmentation_array, "RGB")
 
     
     def zoom_itk(self, *args, **kwargs):
         """ Zoom at x,y location"""
-        self.ITK_seg_array = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True) # fix for when segementation is replaced by another image instance 
-        #TODO: find a better fix
+        
+        # loading the preview image if it exists
+        if self.segmentation_serie_manager.get_preview(self.serie_ID) is not None:
+            self.ITK_seg_image = self.segmentation_serie_manager.get_preview(self.serie_ID)
+        else:
+            self.ITK_seg_image = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True) # fix for when segementation is replaced by another image instance 
+            #TODO: find a better fix
                                        
-        NP_seg_slice = self.ITK_seg_array[:,:, self.slice_index]
+        NP_seg_slice = self.ITK_seg_image[:,:, self.slice_index]
         if NP_seg_slice.GetSize() != self.slice_gray_ITK_image.GetSize():
             logging.warning("Segmentation image size does not match image size")
-            self.ITK_seg_array = sitk.Image(self.slice_gray_ITK_image.GetSize(), sitk.sitkUInt8)
-            self.ITK_seg_array.CopyInformation(self.slice_gray_ITK_image)
+            self.ITK_seg_image = sitk.Image(self.slice_gray_ITK_image.GetSize(), sitk.sitkUInt8)
+            self.ITK_seg_image.CopyInformation(self.slice_gray_ITK_image)
             return
         NP_seg_slice.CopyInformation(self.slice_gray_ITK_image)
 
@@ -71,21 +76,21 @@ class ITKsegmentationFrame(ITKviewerFrame):
 
 
     def set_segmentation_point_current_slice(self, x, y, layer_height):
-        self.ITK_seg_array[x, y, self.slice_index] = layer_height
+        self.ITK_seg_image[x, y, self.slice_index] = layer_height
         self.seg_image_needs_update = True
         self.update_image()
 
     def set_segmentation_mask_current_slice(self, layer_height: int, mask: np.ndarray):
         
-        self.ITK_seg_array[:, :, self.slice_index] = set_mask_value(self.ITK_seg_array[:, :, self.slice_index], mask, layer_height) 
+        self.ITK_seg_image[:, :, self.slice_index] = set_mask_value(self.ITK_seg_image[:, :, self.slice_index], mask, layer_height) 
         self.seg_image_needs_update = True
         self.update_image()
 
-    def clear_segmentation_mask_current_slice(self, layer_height = None):
+    def clear_segmentation_mask_current_slice(self, layer_height: int = None):
         if layer_height is None:
-            self.ITK_seg_array[:, :, self.slice_index] = 0
+            self.ITK_seg_image[:, :, self.slice_index] = 0
         else:
-            self.ITK_seg_array[:, :, self.slice_index] = set_mask_value(self.ITK_seg_array[:, :, self.slice_index], self.ITK_seg_array[:, :, self.slice_index] == layer_height, 0)
+            self.ITK_seg_image[:, :, self.slice_index] = set_mask_value(self.ITK_seg_image[:, :, self.slice_index], self.ITK_seg_image[:, :, self.slice_index] == layer_height, 0)
         self.seg_image_needs_update = True
         self.update_image()
 
@@ -98,5 +103,5 @@ class ITKsegmentationFrame(ITKviewerFrame):
         return super().previous_slice()
 
     def get_NP_seg_slice(self):
-        return sitk.GetArrayFromImage(self.ITK_seg_array[:,:, self.slice_index])
+        return sitk.GetArrayFromImage(self.ITK_seg_image[:,:, self.slice_index])
     
