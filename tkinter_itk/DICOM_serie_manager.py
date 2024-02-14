@@ -1,14 +1,9 @@
-import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
-import logging
-import numpy as np
-from PIL import Image, ImageTk
-import math
-from .Utils import timer_func, PatchedFrame
-import SimpleITK as sitk
-from .ITKviewerframe import ITKviewerFrame
 import os
+import logging
+import tkinter as tk  
+import SimpleITK as sitk
 from .DICOM_serie_instance import DICOM_serie_instance
+from .Utils import PatchedFrame
 
 def GetGDCMSeriesIDs_recursive(DICOM_DIR, reader):
     """placeholder"""
