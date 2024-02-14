@@ -64,9 +64,12 @@ class DICOM_serie_manager(PatchedFrame):
         self.reader.LoadPrivateTagsOn()
         
         self.series_file_names = {}
-        self.DICOM_DIR = os.path.join(os.getcwd(), "test-data")
+        if os.path.exists(os.path.join(os.getcwd(), "test-data")):
+            self.DICOM_DIR = os.path.join(os.getcwd(), "test-data")
+        else:
+            self.DICOM_DIR = None
         # self.DICOM_DIR = os.path.join(os.path.dirname(__file__), "test-data")
-        
+
         # Add a canvas in that frame
         self.canvas = tk.Canvas(self, bg="yellow")
         self.canvas.grid(row=0, column=0, sticky="news")
