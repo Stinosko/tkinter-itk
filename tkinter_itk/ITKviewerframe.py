@@ -4,12 +4,12 @@ import logging
 import numpy as np
 from PIL import Image, ImageTk
 import math
-from Utils import timer_func
+from .Utils import timer_func
 import SimpleITK as sitk
 
-from Utils import PatchedLabel, PatchedCanvas
-from Annotation_point import Annotation_point
-from threading_tk import TkRepeatingTask, BackgroundTask
+from .Utils import PatchedLabel, PatchedCanvas
+from .Annotation_point import Annotation_point
+from .threading_tk import TkRepeatingTask, BackgroundTask
 
 
 class ITKviewerFrame(tk.Frame):    

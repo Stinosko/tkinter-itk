@@ -7,17 +7,17 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
 
-from menu.fileMenu import FileMenu
-from menu.helpMenu import HelpMenu
-from menu.segmentationMenu import SegemntationMenu
+from .menu.fileMenu import FileMenu
+from .menu.helpMenu import HelpMenu
+from .menu.segmentationMenu import SegemntationMenu
 
-from ITKsegmentationframe import ITKsegmentationFrame
-from ITKviewerframe import ITKviewerFrame
-from topbar import Topbar
-from ImagesFrameManager import imagesFrameManager, example_frame_list, example_dual_frame_list, example_segmentation_frame_list, example_only_frame_list
-from DICOM_serie_manager import DICOM_serie_manager
-from segmentation_serie_manager import Segmentation_serie_manager
-from Annotation_manager import Annotation_manager
+from .ITKsegmentationframe import ITKsegmentationFrame
+from .ITKviewerframe import ITKviewerFrame
+from .topbar import Topbar
+from .ImagesFrameManager import imagesFrameManager, example_frame_list, example_dual_frame_list, example_segmentation_frame_list, example_only_frame_list
+from .DICOM_serie_manager import DICOM_serie_manager
+from .segmentation_serie_manager import Segmentation_serie_manager
+from .Annotation_manager import Annotation_manager
 #import progressbar
 
 
@@ -30,7 +30,7 @@ import importlib
 import pkgutil
 
 discovered_plugins = {
-    name[18:]: importlib.import_module(f"plugins.{name}").main_class
+    name[18:]: importlib.import_module(f".plugins.{name}", package="tkinter_itk").main_class
     for finder, name, ispkg 
     in pkgutil.iter_modules([os.path.join( os.path.dirname(__file__),'plugins')])
     if name.startswith('itk_viewer_plugin_')

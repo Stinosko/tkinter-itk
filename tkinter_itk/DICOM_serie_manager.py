@@ -4,11 +4,11 @@ import logging
 import numpy as np
 from PIL import Image, ImageTk
 import math
-from Utils import timer_func, PatchedFrame
+from .Utils import timer_func, PatchedFrame
 import SimpleITK as sitk
-from ITKviewerframe import ITKviewerFrame
+from .ITKviewerframe import ITKviewerFrame
 import os
-from DICOM_serie_instance import DICOM_serie_instance
+from .DICOM_serie_instance import DICOM_serie_instance
 
 def GetGDCMSeriesIDs_recursive(DICOM_DIR, reader):
     """placeholder"""
@@ -70,7 +70,8 @@ class DICOM_serie_manager(PatchedFrame):
         
         self.series_file_names = {}
         self.DICOM_DIR = os.path.join(os.getcwd(), "test-data")
-
+        # self.DICOM_DIR = os.path.join(os.path.dirname(__file__), "test-data")
+        
         # Add a canvas in that frame
         self.canvas = tk.Canvas(self, bg="yellow")
         self.canvas.grid(row=0, column=0, sticky="news")

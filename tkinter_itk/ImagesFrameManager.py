@@ -4,10 +4,10 @@ import logging
 import numpy as np
 from PIL import Image, ImageTk
 import math
-from Utils import timer_func, PatchedFrame
+from .Utils import timer_func, PatchedFrame
 import SimpleITK as sitk
-from ITKviewerframe import ITKviewerFrame
-from ITKsegmentationframe import ITKsegmentationFrame
+from .ITKviewerframe import ITKviewerFrame
+from .ITKsegmentationframe import ITKsegmentationFrame
 import asyncio
 
 example = [

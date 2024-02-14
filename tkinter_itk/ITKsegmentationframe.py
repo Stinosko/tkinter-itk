@@ -3,8 +3,8 @@ import SimpleITK as sitk
 import numpy as np
 import logging
 
-from ITKviewerframe import ITKviewerFrame
-from Utils import timer_func
+from .ITKviewerframe import ITKviewerFrame
+from .Utils import timer_func
 
 def set_mask_value(image, mask, value):
     msk32 = sitk.Cast(mask, sitk.sitkFloat32)
