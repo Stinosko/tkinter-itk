@@ -6,7 +6,7 @@ from PIL import Image, ImageTk
 import math
 from Utils import timer_func
 import SimpleITK as sitk
-from reloading import reloading
+
 from Utils import PatchedLabel, PatchedCanvas
 from Annotation_point import Annotation_point
 from threading_tk import TkRepeatingTask, BackgroundTask
