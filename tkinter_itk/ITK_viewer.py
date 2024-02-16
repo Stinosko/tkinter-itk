@@ -25,12 +25,18 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 import importlib
 import pkgutil
 
-discovered_plugins = {
-    name[18:]: importlib.import_module(f".plugins.{name}", package="tkinter_itk").main_class
-    for finder, name, ispkg 
-    in pkgutil.iter_modules([os.path.join( os.path.dirname(__file__),'plugins')])
-    if name.startswith('itk_viewer_plugin_')
-}
+discovered_plugins = {}
+
+plugin_path = os.path.join(os.path.dirname(__file__), 'plugins')
+
+for finder, name, ispkg in pkgutil.iter_modules([plugin_path]):
+    if name.startswith('itk_viewer_plugin_'):
+        try:
+            module = importlib.import_module(f".plugins.{name}", package="tkinter_itk")
+            discovered_plugins[name[18:]] = module.main_class
+        except ModuleNotFoundError as e:
+            logging.error(f"Failed to import plugin: {e}")
+
 logging.info(discovered_plugins)
 
 class Colors:
