@@ -14,9 +14,20 @@ setup(
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
         packages=find_packages(),
-        install_requires=[], # add any additional packages that 
-        # needs to be installed along with your package. Eg: 'caer'
-        
+        install_requires=[
+            'numpy',
+            'opencv-python',
+            'Pillow',
+            'pydicom',
+            'SimpleITK',
+        ],
+        extras_require = {
+            'sam': ['segment-anything @ git+https://github.com/facebookresearch/segment-anything.git@6fdee8f2727f4506cfbbe553e23b895e27956588',
+                    'torch',
+                    'torchvision',
+                    ],                
+
+        },
         keywords=['python'],
         classifiers= [
             "Development Status :: 2 - Pre-Alpha",
