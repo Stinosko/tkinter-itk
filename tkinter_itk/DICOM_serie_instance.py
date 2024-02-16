@@ -1,14 +1,11 @@
-import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
-import logging
-import numpy as np
-from PIL import Image, ImageTk
-import math
-from .Utils import timer_func, PatchedFrame
-import SimpleITK as sitk
-from .ITKviewerframe import ITKviewerFrame
-import os
 import re
+import logging 
+from tkinter import ttk, Label
+import numpy as np
+import tkinter as tk 
+import SimpleITK as sitk
+from PIL import Image, ImageTk
+from .Utils import PatchedFrame
 
 def retag(tag, widget):
     "Binds an tag to a widget and all its descendants."

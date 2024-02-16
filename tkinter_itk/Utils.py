@@ -1,11 +1,9 @@
 import tkinter as tk  
 import logging
-import functools
 import SimpleITK as sitk
 import cv2
 import numpy as np
 import os
-import uuid
 import time
 
 

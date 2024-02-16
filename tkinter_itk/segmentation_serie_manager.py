@@ -1,14 +1,6 @@
-import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
 import logging
-import numpy as np
-from PIL import Image, ImageTk
-import math
-from .Utils import timer_func, PatchedFrame
-import SimpleITK as sitk
-from .ITKviewerframe import ITKviewerFrame
 import os
-from .DICOM_serie_instance import DICOM_serie_instance
+import SimpleITK as sitk
 
 class Segmentation_serie_manager:
     """placeholder"""

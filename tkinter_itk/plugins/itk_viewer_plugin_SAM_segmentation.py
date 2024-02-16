@@ -1,10 +1,8 @@
 import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
 import logging
 import numpy as np
 from ..Utils import Spinbox
 from segment_anything import SamPredictor, sam_model_registry
-from segment_anything.utils.transforms import ResizeLongestSide
 import os
 import torch
 import SimpleITK as sitk

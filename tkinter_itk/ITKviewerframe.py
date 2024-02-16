@@ -1,15 +1,14 @@
 import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
+from tkinter import ttk
 import logging
 import numpy as np
 from PIL import Image, ImageTk
-import math
-from .Utils import timer_func
+
 import SimpleITK as sitk
 
-from .Utils import PatchedLabel, PatchedCanvas
+from .Utils import  PatchedCanvas
 from .Annotation_point import Annotation_point
-from .threading_tk import TkRepeatingTask, BackgroundTask
+from .threading_tk import BackgroundTask
 
 
 class ITKviewerFrame(tk.Frame):    

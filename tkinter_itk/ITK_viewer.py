@@ -1,20 +1,16 @@
 import logging
 import tkinter as tk
-from tkinter import Label, Menu, filedialog, ttk
+from tkinter import Menu, ttk
 import os 
 
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
 import SimpleITK as sitk
 
 from .menu.fileMenu import FileMenu
 from .menu.helpMenu import HelpMenu
 from .menu.segmentationMenu import SegemntationMenu
 
-from .ITKsegmentationframe import ITKsegmentationFrame
-from .ITKviewerframe import ITKviewerFrame
 from .topbar import Topbar
-from .ImagesFrameManager import imagesFrameManager, example_frame_list, example_dual_frame_list, example_segmentation_frame_list, example_only_frame_list
+from .ImagesFrameManager import imagesFrameManager, example_dual_frame_list
 from .DICOM_serie_manager import DICOM_serie_manager
 from .segmentation_serie_manager import Segmentation_serie_manager
 from .Annotation_manager import Annotation_manager
