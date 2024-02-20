@@ -22,7 +22,7 @@ setup(
             'SimpleITK',
         ],
         extras_require = {
-            'sam': ['segment-anything @ git+https://github.com/facebookresearch/segment-anything.git@6fdee8f2727f4506cfbbe553e23b895e27956588',
+            'sam': ['segment-anything @ git+https://github.com/facebookresearch/segment-anything.git@6fdee8f2727f4506cfbbe553e23b895e27956588', # TODO: git installs not supported by pypi, find a solution
                     'torch',
                     'torchvision',
                     ],                
