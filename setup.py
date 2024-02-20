@@ -10,7 +10,7 @@ setup(
         name="tkinter_itk",
         version=VERSION,
         author="Stinosko",
-        author_email="tkinter_itk.contact@stinosko.com>",
+        author_email="tkinter_itk.contact@stinosko.com",
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
         packages=find_packages(),
