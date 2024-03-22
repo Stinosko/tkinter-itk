@@ -302,6 +302,7 @@ def pydicom_2_sitk(pd_image):
         array[i, :, :] = item.pixel_array
     # print(array.shape)
     array = array + pd_image[0].RescaleIntercept
+    array[array < pd_image[0].RescaleIntercept] = pd_image[0].RescaleIntercept
     # convert to SimpleITK image
     image = sitk.GetImageFromArray(array)
     # set the origin, spacing and direction
