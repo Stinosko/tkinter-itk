@@ -103,7 +103,10 @@ def get_stats_of_segmentation(segmentation_image: sitk.Image, input_image: sitk.
                                 shape_stats.GetOrientedBoundingBoxSize(i)[2],
                                 intensity_stats.GetMean(i),
                                 intensity_stats.GetStandardDeviation(i),
-                                intensity_stats.GetSkewness(i)))
+                                intensity_stats.GetSkewness(i), 
+                                intensity_stats.GetMinimum(i),
+
+                                intensity_stats.GetMaximum(i),))
         else:
                 stats_list.append((0,0,0,0,0,0,0,0)) 
 
@@ -114,7 +117,9 @@ def get_stats_of_segmentation(segmentation_image: sitk.Image, input_image: sitk.
         "Oriented Bounding Box Maximum Size(cm)",
     "Intensity Mean",
     "Intensity Standard Deviation",
-    "Intensity Skewness"]
+    "Intensity Skewness",
+    "Intensity Minimum",
+    "Intensity Maximum"]
 
     # Create the pandas data frame and display descriptive statistics.
     stats = pd.DataFrame(data=stats_list, columns=cols, index=range(1, amount))
@@ -288,3 +293,30 @@ def isolate_region_based_on_segmentation(image: sitk.Image, segmentation_image, 
     return isolated_image
 
 
+
+def pydicom_2_sitk(pd_image):
+    """Convert a pydicom image to a SimpleITK image"""
+    # combine the pixel arrays
+    array = np.empty((len(pd_image), pd_image[0].pixel_array.shape[0], pd_image[0].pixel_array.shape[1]))
+    for i, item in enumerate( pd_image):
+        array[i, :, :] = item.pixel_array
+    # print(array.shape)
+    array = array + pd_image[0].RescaleIntercept
+    # convert to SimpleITK image
+    image = sitk.GetImageFromArray(array)
+    # set the origin, spacing and direction
+    # print("origin: ", pd_image[0].get((0x0020, 0x0032)).value)
+    image.SetOrigin(pd_image[0].get((0x0020, 0x0032)).value)
+    spacing = pd_image[0].PixelSpacing
+    slice_thickness = pd_image[0].get((0x0018, 0x0050)).value
+    # print("spacing: ", spacing)
+    # print("slice_thickness: ", slice_thickness)
+    image.SetSpacing([spacing[0], spacing[1], slice_thickness])
+    # print(pd_image[0].get((0x0020, 0x0037)).value)
+    x, y = pd_image[0].get((0x0020, 0x0037)).value[0:3], pd_image[0].get((0x0020, 0x0037)).value[3:6]
+    origin_start = pd_image[0].get((0x0020, 0x0032)).value
+    origin_end = pd_image[-1].get((0x0020, 0x0032)).value
+    z = np.array([origin_end[i] - origin_start[i] for i in range(3)])
+    z = z / np.linalg.norm(z)
+    image.SetDirection([x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2]])
+    return image
