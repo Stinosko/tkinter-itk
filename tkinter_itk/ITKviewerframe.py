@@ -1,15 +1,14 @@
 import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
+from tkinter import ttk
 import logging
 import numpy as np
 from PIL import Image, ImageTk
-import math
-from Utils import timer_func
+
 import SimpleITK as sitk
 
-from Utils import PatchedLabel, PatchedCanvas
-from Annotation_point import Annotation_point
-from threading_tk import TkRepeatingTask, BackgroundTask
+from .Utils import  PatchedCanvas
+from .Annotation_point import Annotation_point
+from .threading_tk import BackgroundTask
 
 
 class ITKviewerFrame(tk.Frame):    
@@ -92,7 +91,7 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<Shift-B1-Motion>', self.change_window_level)
         self.image_label.bind('<ButtonPress-1>', self.start_drag_event_image , add='+')
         self.image_label.bind('<ButtonRelease-1>', self.stop_drag_event_image)
-        self.image_label.bind('<Motion>', self.update_label_meta_info_value)
+        self.image_label.bind('<Motion>', self.update_label_meta_info_value, add='+')
         self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord)
         # self.image_label.bind('<Configure>', lambda event: self.update_image())
         self.image_label.bind('<Leave>', self.on_leave)

@@ -1,5 +1,5 @@
 import tkinter as tk  
-from Utils import  PatchedCanvas
+from .Utils import  PatchedCanvas
 
 
 class Annotation_point():

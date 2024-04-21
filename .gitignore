@@ -163,7 +163,7 @@ Patient2049/
 .vscode/
 .tmp/
 images/
-models/
+models/*
 .temp/
 
 *.nix

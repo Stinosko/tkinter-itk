@@ -1,14 +1,11 @@
-import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
-import logging
-import numpy as np
-from PIL import Image, ImageTk
-import math
-from Utils import timer_func, PatchedFrame
-import SimpleITK as sitk
-from ITKviewerframe import ITKviewerFrame
-import os
 import re
+import logging 
+from tkinter import ttk, Label
+import numpy as np
+import tkinter as tk 
+import SimpleITK as sitk
+from PIL import Image, ImageTk
+from .Utils import PatchedFrame
 
 def retag(tag, widget):
     "Binds an tag to a widget and all its descendants."
@@ -158,8 +155,11 @@ class DICOM_serie_instance(PatchedFrame):
         self._nametowidget(".").update_idletasks()
         target_widget = self._nametowidget(".").winfo_containing(x,y)
         
-        itkviewerframe = re.search("(.*)(itkviewerframe|itksegmentationframe)(\\d+)?".lower(), str(target_widget)).group()
-        print(itkviewerframe)
+        itkviewerframe = re.search("(.*)(itkviewerframe|itksegmentationframe)(\\d+)?".lower(), str(target_widget))
+        if itkviewerframe is None:
+            return
+        itkviewerframe = itkviewerframe.group()
+        logging.debug(f"Target widget: {itkviewerframe}")
         itkviewerframe = self._nametowidget(itkviewerframe)
         serie_ID = self.drag_widget.serie_ID
         ITK_image = self.drag_widget.ITK_image

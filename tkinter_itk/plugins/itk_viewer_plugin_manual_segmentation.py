@@ -1,8 +1,6 @@
 import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
 import logging
-import numpy as np
-from Utils import Spinbox
+from ..Utils import Spinbox
 
 class manual_segmentation:
     name_short = "manual"

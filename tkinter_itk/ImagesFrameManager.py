@@ -1,14 +1,11 @@
-import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
+import tkinter as tk
 import logging
-import numpy as np
-from PIL import Image, ImageTk
-import math
-from Utils import timer_func, PatchedFrame
+from .Utils import PatchedFrame
 import SimpleITK as sitk
-from ITKviewerframe import ITKviewerFrame
-from ITKsegmentationframe import ITKsegmentationFrame
+from .ITKviewerframe import ITKviewerFrame
+from .ITKsegmentationframe import ITKsegmentationFrame
 import asyncio
+from tkinter import ttk
 
 example = [
     [[1,

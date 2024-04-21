@@ -1,14 +1,9 @@
-import tkinter as tk  
-from tkinter import ttk, Label, Menu, filedialog
-import logging
-import numpy as np
-from PIL import Image, ImageTk
-import math
-from Utils import timer_func, PatchedFrame
-import SimpleITK as sitk
-from ITKviewerframe import ITKviewerFrame
 import os
-from DICOM_serie_instance import DICOM_serie_instance
+import logging
+import tkinter as tk  
+import SimpleITK as sitk
+from .DICOM_serie_instance import DICOM_serie_instance
+from .Utils import PatchedFrame
 
 def GetGDCMSeriesIDs_recursive(DICOM_DIR, reader):
     """placeholder"""
@@ -69,7 +64,11 @@ class DICOM_serie_manager(PatchedFrame):
         self.reader.LoadPrivateTagsOn()
         
         self.series_file_names = {}
-        self.DICOM_DIR = os.path.join(os.getcwd(), "test-data")
+        if os.path.exists(os.path.join(os.getcwd(), "test-data")):
+            self.DICOM_DIR = os.path.join(os.getcwd(), "test-data")
+        else:
+            self.DICOM_DIR = None
+        # self.DICOM_DIR = os.path.join(os.path.dirname(__file__), "test-data")
 
         # Add a canvas in that frame
         self.canvas = tk.Canvas(self, bg="yellow")
