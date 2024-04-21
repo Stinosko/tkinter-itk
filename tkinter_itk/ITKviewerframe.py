@@ -83,6 +83,8 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<Up>', lambda event: self.next_slice())
         self.image_label.bind('<Down>', lambda event: self.previous_slice())
         self.image_label.bind('<Control-MouseWheel>', self.__zoom)
+        self.image_label.bind('<Control-Button-5>',   self.__zoom)
+        self.image_label.bind('<Control-Button-4>',   self.__zoom)
         self.image_label.bind('<Right>', lambda event: self.zoom_in())
         self.image_label.bind('<Left>', lambda event: self.zoom_out())
         self.image_label.bind('<Control-B1-Motion>', self.pan_image)
