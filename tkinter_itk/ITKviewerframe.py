@@ -57,7 +57,7 @@ class ITKviewerFrame(tk.Frame):
         self.initialize()
         self.image_label.grid(row=0, column=0, sticky="news", padx=5, pady=5)
 
-        self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}")
+        self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}")
         self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
         
         self.image_needs_updating = True
@@ -108,7 +108,7 @@ class ITKviewerFrame(tk.Frame):
         self.configure(bg="yellow")
 
     def on_leave(self, event):
-        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
+        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}")
 
     def get_dummy_DiCOM_array(self):
         """placeholder"""
@@ -368,11 +368,11 @@ class ITKviewerFrame(tk.Frame):
         x, y = self.get_mouse_location_dicom(event)
         if x < 0 or x >= self.ITK_image.GetSize()[0] or y < 0 or y >= self.ITK_image.GetSize()[1] or not self.is_mouse_on_image(event):
             logging.debug("mouse out of bounds")
-            self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
+            self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}")
             return
             
         HU = self.ITK_image[x,y, self.slice_index]
-        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, HU: {HU}")
+        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}, HU: {HU:0>4}, x: {x:0>3}, y: {y:0>3}")
         
     def drag_event_rel_coord(self, event):
         logging.debug("dragging")
@@ -407,7 +407,7 @@ class ITKviewerFrame(tk.Frame):
         self.window += delta_x
         self.level += delta_y
         
-        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}")
+        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}")
 
         self.update_image()
     
@@ -568,4 +568,5 @@ class ITKviewerFrame(tk.Frame):
 
     def slider_changed(self, event):
         self.slice_index = int(self.slider.get())
+        self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}")
         self.update_image()
