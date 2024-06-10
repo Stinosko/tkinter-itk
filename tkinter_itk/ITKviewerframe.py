@@ -57,7 +57,7 @@ class ITKviewerFrame(tk.Frame):
         self.initialize()
         self.image_label.grid(row=0, column=0, sticky="news", padx=5, pady=5)
 
-        self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}")
+        self.label_meta_info = tk.Label(self.frame, text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}", anchor=tk.W)
         self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
         
         self.image_needs_updating = True
@@ -375,11 +375,11 @@ class ITKviewerFrame(tk.Frame):
         # if image is not a vector image
         if self.ITK_image.GetNumberOfComponentsPerPixel() == 1:
             # self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}, HU: {HU:0>4}, x: {x:0>3}, y: {y:0>3}")
-            HU = str(HU).rjust(4, "0")
-            self.update_label_meta_info(HU, x, y)
+            HU = f"{HU:0>4}"
+            self.update_label_meta_info(HU = HU, X = x, Y = y)
         else:
             # self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}, HU: {HU}, x: {x:0>3}, y: {y:0>3}")
-            self.update_label_meta_info(HU, x, y)
+            self.update_label_meta_info(HU = HU, X = x, Y = y)
 
     def drag_event_rel_coord(self, event):
         logging.debug("dragging")
@@ -588,8 +588,10 @@ class ITKviewerFrame(tk.Frame):
         self.update_label_meta_info()
         self.update_image()
 
-    def update_label_meta_info(self, *args):
+    def update_label_meta_info(self, *args, **kwargs):
         text = f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}"
         for arg in args:
             text += f", {arg}"
+        for key, value in kwargs.items():
+            text += f", {key}: {value}"
         self.label_meta_info.config(text=text)

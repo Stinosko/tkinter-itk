@@ -113,3 +113,23 @@ class ITKsegmentationFrame(ITKviewerFrame):
     
     def accept_preview(self):
         self.segmentation_serie_manager.accept_preview(self.serie_ID)
+
+
+    def update_label_meta_info_value(self, event):
+        x, y = self.get_mouse_location_dicom(event)
+        if x < 0 or x >= self.ITK_image.GetSize()[0] or y < 0 or y >= self.ITK_image.GetSize()[1] or not self.is_mouse_on_image(event):
+            logging.debug("mouse out of bounds")
+            self.update_label_meta_info()
+            return
+            
+        HU = self.ITK_image[x,y, self.slice_index]
+        label = self.ITK_seg_image[x,y, self.slice_index]
+        # if image is not a vector image
+        if self.ITK_image.GetNumberOfComponentsPerPixel() == 1:
+            # self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}, HU: {HU:0>4}, x: {x:0>3}, y: {y:0>3}")
+            HU = f"{HU:0>4}"
+            label = f"{label:0>3}"
+            self.update_label_meta_info(HU = HU, Label = label, X = x, Y = y)
+        else:
+            # self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}, HU: {HU}, x: {x:0>3}, y: {y:0>3}")
+            self.update_label_meta_info(HU = HU, X = x, Y = y)
