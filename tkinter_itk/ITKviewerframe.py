@@ -602,6 +602,16 @@ class ITKviewerFrame(tk.Frame):
         self.update_label_meta_info()
         self.update_image()
 
+    def set_slice(self, slice_index):
+        if slice_index < 0:
+            slice_index = 0
+        if slice_index >= self.ITK_image.GetSize()[2]:
+            slice_index = self.ITK_image.GetSize()[2] - 1
+        self.slice_index = slice_index
+        self.update_label_meta_info()
+        self.slider.set(self.slice_index)
+        self.update_image()
+
     def update_label_meta_info(self, *args, **kwargs):
         text = f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}"
         for arg in args:
