@@ -179,6 +179,16 @@ class DICOM_serie_instance(PatchedFrame):
         else:
             return self.ITK_image[:,:,slice_number]
     
+    def load_serie(self):
+        if self.ITK_image is None:
+            self.ITK_image = self.reader.Execute()
+            self.ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
+            self.ITK_image.SetOrigin((0,0,0))
+        return self.ITK_image
+
+    def unload_serie(self):
+        self.ITK_image = None
+
     def get_serie_size(self):
         if self.ITK_image is None:
             size = list(self.preview_reader.GetSize())

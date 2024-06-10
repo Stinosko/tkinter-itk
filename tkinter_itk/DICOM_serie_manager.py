@@ -126,7 +126,19 @@ class DICOM_serie_manager(PatchedFrame):
         else:
             logging.warning("Data directory does not contain any DICOM series.")
             return
-        
+
+        # check if they have the aqcuisition time key
+        sort_by_acquisition_time = True
+        for serie_ID in series_file_names:
+            series_file_names[serie_ID].Execute()
+            if not series_file_names[serie_ID].HasMetaDataKey(0, "0008|0032"):
+                logging.warning(f"Series {serie_ID} does not have the key 0008|0032 (acquisition time).")
+                sort_by_acquisition_time = False
+                break
+        if sort_by_acquisition_time:
+            # sort the series by key 0008|0032 (acquisition time)
+            series_file_names = dict(sorted(series_file_names.items(), key=lambda item: item[1].GetMetaData(0, "0008|0032")))
+
         self.series_file_names = series_file_names
 
     def load_image_serie(self, image, image_name, add = False):
@@ -189,3 +201,9 @@ class DICOM_serie_manager(PatchedFrame):
     
     def get_serie_image(self, serie_ID):
         return self.DICOM_serie_instances[serie_ID].get_serie_image()
+    
+    def load_serie(self, serie_ID):
+        return self.DICOM_serie_instances[serie_ID].load_serie()
+    
+    def unload_serie(self, serie_ID):
+        return self.DICOM_serie_instances[serie_ID].unload_serie()

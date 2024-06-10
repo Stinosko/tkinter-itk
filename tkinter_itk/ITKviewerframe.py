@@ -25,6 +25,7 @@ class ITKviewerFrame(tk.Frame):
         self.mainframe = self.FrameManager.parent
         self.annotation_manager = self.FrameManager.parent.annotation_manager
         self.annotation_cache = {}
+        self.DICOM_serie_manager = self.FrameManager.parent.DICOM_serie_manager
 
         self.zoom_delta = 1
         self.zoom = 1
@@ -228,6 +229,9 @@ class ITKviewerFrame(tk.Frame):
         
         if ITK_image is not None:
             self.ITK_image = ITK_image
+        else: 
+            logging.warning("No ITK_image passed")
+
         self.serie_ID = serie_ID
         # print("serie_ID", serie_ID)
         self.slice_index = 0
@@ -236,12 +240,22 @@ class ITKviewerFrame(tk.Frame):
         self.center_Y = 0
         self.zoom = 1
         self.zoom_delta = 1
+        
+        # Load serie in memory
+        # TODO: unload serie if not used
+        self.DICOM_serie_manager.load_serie(serie_ID)
+        
         if window is not None:
             self.window = window
+        elif self.DICOM_serie_manager.get_serie_reader(serie_ID) is not None and self.DICOM_serie_manager.get_serie_reader(serie_ID).HasMetaDataKey(0, "0028|1051"):
+            self.window = int(self.DICOM_serie_manager.get_serie_reader(serie_ID).GetMetaData(0, "0028|1051"))
         else:
             self.window = sitk.GetArrayFromImage(self.ITK_image).max() - sitk.GetArrayFromImage(self.ITK_image).min()
+        
         if level is not None:
             self.level = level
+        elif self.DICOM_serie_manager.get_serie_reader(serie_ID) is not None and self.DICOM_serie_manager.get_serie_reader(serie_ID).HasMetaDataKey(0, "0028|1050"):
+            self.level = int(self.DICOM_serie_manager.get_serie_reader(serie_ID).GetMetaData(0, "0028|1050"))
         else:
             self.level = sitk.GetArrayFromImage(self.ITK_image).max() - self.window/2
 
