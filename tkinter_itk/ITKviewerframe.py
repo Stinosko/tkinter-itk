@@ -10,6 +10,25 @@ from .Utils import  PatchedCanvas
 from .Annotation_point import Annotation_point
 from .threading_tk import BackgroundTask
 
+class right_click_menu(tk.Menu):
+    def __init__(self, parent, **kwargs):
+        tk.Menu.__init__(self, parent, **kwargs)
+        self.parent = parent
+        self.add_command(label="Delete annotation", command=self.delete_annotation)
+
+        self.parent.image_label.bind("<Button-3>", self.show)
+        self.bind("<FocusOut>", self.on_focus_out)
+
+    def delete_annotation(self):
+        self.parent.delete_all_annotations()
+
+    def show(self, event):
+        logging.warning("showing menu")
+        self.post(event.x_root, event.y_root)
+
+    def on_focus_out(self, event):
+        self.unpost()
+
 
 class ITKviewerFrame(tk.Frame):    
     """ ITK viewer Frame """
@@ -40,7 +59,7 @@ class ITKviewerFrame(tk.Frame):
         self.center_Y = 0
 
         self.interpolate = Image.NEAREST
-
+        self.ITK_interpolate = sitk.sitkNearestNeighbor
         
         if self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs() is not None:
             self.serie_ID = list(self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs())[0]
@@ -72,6 +91,8 @@ class ITKviewerFrame(tk.Frame):
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
 
+        self.right_click_menu = right_click_menu(self)
+
         if self.threading:
             self.bgTask = BackgroundTask( self._update_image )
             self.bgTask.start()
@@ -99,7 +120,6 @@ class ITKviewerFrame(tk.Frame):
         # self.frame.bind('<Configure>', lambda event: self.update_image_frame())
         self.bind('<FocusIn>', self.on_focus_in)
         # self.bind('<FocusOut>', self.on_focus_out)
-        # self.image_label.bind('<Button-3>', self.toggle_point_annotation)
 
     def on_focus_in(self, event):
         self.configure(bg="red")
@@ -221,11 +241,16 @@ class ITKviewerFrame(tk.Frame):
             for parent in parents:
                 widget._nametowidget(parent).update()
     
+    def delete_all_annotations(self):
+        """placeholder"""
+        self.annotation_manager.delete_all_serie_ID_annotations(self.serie_ID)
+        self.update_image()
+
     def load_new_CT(self, window: int = None, level: int = None, ITK_image: sitk.Image = None, serie_ID: str = None, update_image: bool = True):
         """placeholder"""
         logging.debug("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
-        self.annotation_manager.delete_all_serie_ID_annotations(self.serie_ID)
-        self.annotation_cache = {}
+
+        self.delete_all_annotations()
         
         if ITK_image is not None:
             self.ITK_image = ITK_image
@@ -440,7 +465,7 @@ class ITKviewerFrame(tk.Frame):
         self.transform = transform
         logging.debug([self.image_label.winfo_width(), self.image_label.winfo_height()])
         size = [self.image_label.winfo_width(), self.image_label.winfo_height()]
-        self.slice_ITK_image_transformed = sitk.Resample(self.slice_ITK_image, transform, sitk.sitkNearestNeighbor, size =size)
+        self.slice_ITK_image_transformed = sitk.Resample(self.slice_ITK_image, transform, self.ITK_interpolate, size =size)
         
         if   self.slice_ITK_image_transformed.GetNumberOfComponentsPerPixel() == 1:
             return Image.fromarray( sitk.GetArrayFromImage(self.slice_ITK_image_transformed).astype(np.uint8), mode="L")
