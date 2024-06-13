@@ -250,7 +250,8 @@ class ITKviewerFrame(tk.Frame):
         """placeholder"""
         logging.debug("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
 
-        self.delete_all_annotations()
+        # not using self.delete_all_annotations() because update_image should not be called
+        self.annotation_manager.delete_all_serie_ID_annotations(self.serie_ID)
         
         if ITK_image is not None:
             self.ITK_image = ITK_image
@@ -273,14 +274,14 @@ class ITKviewerFrame(tk.Frame):
         if window is not None:
             self.window = window
         elif self.DICOM_serie_manager.get_serie_reader(serie_ID) is not None and self.DICOM_serie_manager.get_serie_reader(serie_ID).HasMetaDataKey(0, "0028|1051"):
-            self.window = int(self.DICOM_serie_manager.get_serie_reader(serie_ID).GetMetaData(0, "0028|1051"))
+            self.window = int(float(self.DICOM_serie_manager.get_serie_reader(serie_ID).GetMetaData(0, "0028|1051")))
         else:
             self.window = sitk.GetArrayFromImage(self.ITK_image).max() - sitk.GetArrayFromImage(self.ITK_image).min()
         
         if level is not None:
             self.level = level
         elif self.DICOM_serie_manager.get_serie_reader(serie_ID) is not None and self.DICOM_serie_manager.get_serie_reader(serie_ID).HasMetaDataKey(0, "0028|1050"):
-            self.level = int(self.DICOM_serie_manager.get_serie_reader(serie_ID).GetMetaData(0, "0028|1050"))
+            self.level = int(float(self.DICOM_serie_manager.get_serie_reader(serie_ID).GetMetaData(0, "0028|1050")))
         else:
             self.level = sitk.GetArrayFromImage(self.ITK_image).max() - self.window/2
 
