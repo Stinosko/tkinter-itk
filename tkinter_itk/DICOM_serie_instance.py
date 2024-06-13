@@ -120,7 +120,13 @@ class DICOM_serie_instance(PatchedFrame):
         self.preview_label.grid(row=0, column=0, sticky='w')
         self.config(width=125)
 
-        self.button = ttk.Button(self, text=self.serie_ID)
+        if self.reader.GetImageIO() == "":
+            self.button = ttk.Button(self, text=self.serie_ID)
+        elif self.reader.HasMetaDataKey("0008|103e"):
+            self.button = ttk.Button(self, text=self.reader.GetMetaData("0008|103e"))
+        else:
+            self.button = ttk.Button(self, text=self.serie_ID)
+            
         self.button.grid(row=1, column=0)
 
         self.make_draggable()
