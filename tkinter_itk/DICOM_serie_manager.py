@@ -129,15 +129,32 @@ class DICOM_serie_manager(PatchedFrame):
 
         # check if they have the aqcuisition time key
         sort_by_acquisition_time = True
+        sort_by_series_number = True
+        
         for serie_ID in series_file_names:
             series_file_names[serie_ID].Execute()
             if not series_file_names[serie_ID].HasMetaDataKey(0, "0008|0032"):
                 logging.warning(f"Series {serie_ID} does not have the key 0008|0032 (acquisition time).")
                 sort_by_acquisition_time = False
+            if not series_file_names[serie_ID].HasMetaDataKey(0, "0020|0011"):
+                logging.warning(f"Series {serie_ID} does not have the key 0020|0011 (series number).")
+                sort_by_series_number = False
+        
+            if not sort_by_acquisition_time and not sort_by_series_number:
+                logging.warning(f"Series {serie_ID} does not have the keys 0008|0032 (acquisition time) or 0020|0011 (series number).")
                 break
+        
+        if sort_by_acquisition_time and sort_by_series_number:
+            # sort the series by key 0008|0032 (acquisition time) then by key 0020|0011 (series number)
+            series_file_names = dict(sorted(series_file_names.items(), key=lambda item: (item[1].GetMetaData(0, "0008|0032"), item[1].GetMetaData(0, "0020|0011"))))
+
         if sort_by_acquisition_time:
             # sort the series by key 0008|0032 (acquisition time)
             series_file_names = dict(sorted(series_file_names.items(), key=lambda item: item[1].GetMetaData(0, "0008|0032")))
+
+        elif sort_by_series_number:
+            # sort the series by key 0020|0011 (series number)
+            series_file_names = dict(sorted(series_file_names.items(), key=lambda item: item[1].GetMetaData(0, "0020|0011")))
 
         self.series_file_names = series_file_names
 
