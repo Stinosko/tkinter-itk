@@ -42,6 +42,10 @@ class Annotation_manager:
         return self.annotations[serie_ID][annotation_ID]["annotation"]
     
     def delete_annotation_ID(self, serie_ID, annotation_ID):
+        if serie_ID not in self.DICOM_manager.get_serie_IDs():
+            logging.warning('Serie ID does not exist')
+            return None
+        
         if serie_ID not in self.annotations.keys():
             logging.debug('Serie ID does not have any annotations')
             return None
