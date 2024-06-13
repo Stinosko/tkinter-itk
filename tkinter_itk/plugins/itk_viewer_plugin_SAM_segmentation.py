@@ -178,15 +178,21 @@ class SAM_segmentation:
         # print(x, y)
         if self.button3.config('relief')[-1] == 'sunken':
             # print("add")
-            point = self.parent.ITKviewer.active_widget.set_annotation_point_current_slice(int(x), int(y), color="green", size=5)
-            self.include_points.append(point)
+            self.add_include_point(x, y)
         elif self.button4.config('relief')[-1] == 'sunken':
             # print("remove")
-            point = self.parent.ITKviewer.active_widget.set_annotation_point_current_slice(int(x), int(y), color="red", size=5)
-            self.exclude_points.append(point)
+            self.add_exclude_point(x, y)
         else:
             self.parent.ITKviewer.active_widget.set_segmentation_point_current_slice(int(x), int(y), self.layer_height)
         self.update_segmentation()
+
+    def add_include_point(self, x, y):
+        point = self.parent.ITKviewer.active_widget.set_annotation_point_current_slice(int(x), int(y), color="green", size=5)
+        self.include_points.append(point)
+
+    def add_exclude_point(self, x, y):
+        point = self.parent.ITKviewer.active_widget.set_annotation_point_current_slice(int(x), int(y), color="red", size=5)
+        self.exclude_points.append(point)
 
     def button3_press_event_image(self, event):
         logging.debug("button3_press_event_image in manual segmentation")
@@ -212,6 +218,12 @@ class SAM_segmentation:
         else:
             self.parent.ITKviewer.active_widget.set_segmentation_point_current_slice(int(x), int(y), 0)
         self.update_segmentation()
+
+    def remove_annotation(self, annotation):
+        if annotation.unique_id in self.include_points:
+            self.include_points.remove(annotation.unique_id)
+        elif annotation.unique_id in self.exclude_points:
+            self.exclude_points.remove(annotation.unique_id)
 
     def update_segmentation(self):
         self.parent.ITKviewer.active_widget.update_image()

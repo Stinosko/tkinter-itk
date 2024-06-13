@@ -111,6 +111,29 @@ class ITKsegmentationFrame(ITKviewerFrame):
     def get_NP_seg_slice(self):
         return sitk.GetArrayFromImage(self.ITK_seg_image[:,:, self.slice_index])
     
+    def set_NP_seg_slice(self, NP_seg_slice: np.ndarray):
+        if self.ITK_seg_image.GetPixelIDValue() == sitk.sitkUInt8:
+            if NP_seg_slice.max() > 255:
+                logging.error("Segmentation image has values above 255, converting to uint8")
+                NP_seg_slice = NP_seg_slice.astype(np.uint8)
+            NP_seg_slice = NP_seg_slice.astype(np.uint8)
+        elif self.ITK_seg_image.GetPixelIDValue() == sitk.sitkUInt16:
+            if NP_seg_slice.max() > 65535:
+                logging.error("Segmentation image has values above 65535, converting to uint16")
+                NP_seg_slice = NP_seg_slice.astype(np.uint16)
+            NP_seg_slice = NP_seg_slice.astype(np.uint16)
+        elif self.ITK_seg_image.GetPixelIDValue() == sitk.sitkUInt32:
+            if NP_seg_slice.max() > 4294967295:
+                logging.error("Segmentation image has values above 4294967295, converting to uint32")
+            NP_seg_slice = NP_seg_slice.astype(np.uint32)
+        elif self.ITK_seg_image.GetPixelIDValue() == sitk.sitkUInt64:
+            if NP_seg_slice.max() > 18446744073709551615: # would be very impressive if you have a segmentation image with values above this
+                logging.error("Segmentation image has values above 18446744073709551615, converting to uint64")
+            NP_seg_slice = NP_seg_slice.astype(np.uint64)
+        self.ITK_seg_image[:,:, self.slice_index] = sitk.GetImageFromArray(NP_seg_slice)
+        self.seg_image_needs_update = True
+        self.update_image()
+
     def accept_preview(self):
         self.segmentation_serie_manager.accept_preview(self.serie_ID)
 
