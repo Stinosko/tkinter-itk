@@ -3,6 +3,7 @@ from tkinter import ttk
 import logging
 import numpy as np
 from PIL import Image, ImageTk
+import PIL.Image
 
 import SimpleITK as sitk
 
@@ -15,6 +16,7 @@ class right_click_menu(tk.Menu):
         tk.Menu.__init__(self, parent, **kwargs)
         self.parent = parent
         self.add_command(label="Delete annotation", command=self.delete_annotation)
+        self.add_command(label="Unload serie", command=self.remove_serie)
 
         self.parent.image_label.bind("<Button-3>", self.show)
         self.bind("<FocusOut>", self.on_focus_out)
@@ -28,6 +30,9 @@ class right_click_menu(tk.Menu):
 
     def on_focus_out(self, event):
         self.unpost()
+
+    def remove_serie(self):
+        self.parent.unload_serie()
 
 
 class ITKviewerFrame(tk.Frame):    
@@ -66,7 +71,7 @@ class ITKviewerFrame(tk.Frame):
             self.ITK_image = self.FrameManager.parent.DICOM_serie_manager.get_serie_reader(self.serie_ID).Execute()
         else:
             self.serie_ID = None
-            self.ITK_image = self.get_dummy_SITK_image()
+            self.ITK_image = None
 
         self.frame = self
         self.frame.grid(row=0, column=0, sticky="news")
@@ -81,8 +86,9 @@ class ITKviewerFrame(tk.Frame):
         self.label_meta_info.grid(row=1, column=0, sticky=tk.E + tk.W, pady=1) 
         
         self.image_needs_updating = True
-        self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())  # create image object
-        self.canvas_image_id = self.image_label.create_image(0, 0, anchor=tk.NW, image=self.image)  # put image on canvas
+        self.image = None  # create image object
+        self.canvas_image_id = None  # put image on canvas
+        self._update_image()
 
         self.slider = ttk.Scale(self.frame, from_=0, to=self.ITK_image.GetSize()[2] - 1, orient='vertical', command=self.slider_changed)
         self.slider.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
@@ -194,22 +200,40 @@ class ITKviewerFrame(tk.Frame):
     
     def get_image_slice(self, slice_index):
         """placeholder"""
+        
         if self.serie_ID is not None:
             # print(self.serie_ID)
+            image_slice = self.mainframe.DICOM_serie_manager.get_image_slice(self.serie_ID, slice_index)
+            
+            if image_slice is None:
+                logging.error("Image slice is None")
+                self.unload_serie()
+                return None
+            
             return self.mainframe.DICOM_serie_manager.get_image_slice(self.serie_ID, slice_index)
+        
+        
         return self.ITK_image[:,:, slice_index]
     
     def get_image_from_HU_array_with_zoom(self, force_update=False):
         """placeholder"""
         
-        self.get_image_from_HU_array(img_type="RGBA")
-        logging.debug("zooming in")
-        self.slice_ITK_image = self.slice_gray_ITK_image
-        self.slice_PIL_image_trasformed = self.zoom_itk()
+        if self.ITK_image is not None:
+            self.get_image_from_HU_array(img_type="RGBA")
+            logging.debug("zooming in")
+            self.slice_ITK_image = self.slice_gray_ITK_image
+            self.slice_PIL_image_trasformed = self.zoom_itk()
 
-        self.update_canvas_annotations()
-        self.image_needs_updating = False
-        return self.slice_PIL_image_trasformed
+            self.update_canvas_annotations()
+            self.image_needs_updating = False
+            return self.slice_PIL_image_trasformed
+        
+        else:
+            logging.error("No ITK_image loaded")
+            image_txt = PIL.Image.new("RGB", (512,512), (255,255,255))
+            draw = PIL.ImageDraw.Draw(image_txt)
+            draw.text((10,10), "No image loaded", fill="black")
+            return image_txt
 
     def update_image(self):
         """placeholder"""
@@ -388,6 +412,9 @@ class ITKviewerFrame(tk.Frame):
 
     
     def get_mouse_location_dicom(self, event = None, coords = None):
+        if self.ITK_image is None:
+            logging.debug("No ITK_image loaded")
+            return None, None
         w_l , w_h = self.image_label.winfo_width(), self.image_label.winfo_height()
         sp_x , sp_y = self.slice_gray_ITK_image.GetSpacing()
         if event is not None:
@@ -610,7 +637,10 @@ class ITKviewerFrame(tk.Frame):
 
     def _update_image(self, isRunningFunc=None):
         self.image = ImageTk.PhotoImage(self.get_image_from_HU_array_with_zoom())
-        self.image_label.itemconfigure(self.canvas_image_id, image=self.image)
+        if self.canvas_image_id is not None:
+            self.image_label.itemconfigure(self.canvas_image_id, image=self.image)
+        else:
+            self.canvas_image_id = self.image_label.create_image(0, 0, anchor=tk.NW, image=self.image)
         
 
     def slider_changed(self, event):
@@ -645,3 +675,19 @@ class ITKviewerFrame(tk.Frame):
         for key, value in kwargs.items():
             text += f", {key}: {value}"
         self.label_meta_info.config(text=text)
+
+    def unload_serie(self):
+        self.ITK_image = None
+        self.serie_ID = None
+
+        self.window = None
+        self.level = None
+        self.slice_index = 0
+        self.center_X = 0
+        self.center_Y = 0
+        self.zoom = 1
+
+        self.slider.config(to=0, value=0)
+        self.image_needs_updating = True
+
+        self.update_image()

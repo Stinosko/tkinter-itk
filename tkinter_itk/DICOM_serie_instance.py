@@ -122,8 +122,8 @@ class DICOM_serie_instance(PatchedFrame):
 
         if self.reader.GetImageIO() == "":
             self.button = ttk.Button(self, text=self.serie_ID)
-        elif self.reader.HasMetaDataKey("0008|103e"):
-            self.button = ttk.Button(self, text=self.reader.GetMetaData("0008|103e"))
+        elif self.reader.HasMetaDataKey(key = "0008|103e", slice = 0):
+            self.button = ttk.Button(self, text=self.reader.GetMetaData(key = "0008|103e", slice = 0))
         else:
             self.button = ttk.Button(self, text=self.serie_ID)
             

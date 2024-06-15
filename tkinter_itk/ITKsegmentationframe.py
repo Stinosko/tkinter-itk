@@ -140,6 +140,10 @@ class ITKsegmentationFrame(ITKviewerFrame):
 
     def update_label_meta_info_value(self, event):
         x, y = self.get_mouse_location_dicom(event)
+
+        if x is None or y is None:
+            logging.debug("mouse out of bounds or not ITK image")
+            return
         if x < 0 or x >= self.ITK_image.GetSize()[0] or y < 0 or y >= self.ITK_image.GetSize()[1] or not self.is_mouse_on_image(event):
             logging.debug("mouse out of bounds")
             self.update_label_meta_info()
