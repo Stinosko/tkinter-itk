@@ -154,8 +154,8 @@ class ITKsegmentationFrame(ITKviewerFrame):
         # if image is not a vector image
         if self.ITK_image.GetNumberOfComponentsPerPixel() == 1:
             # self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}, HU: {HU:0>4}, x: {x:0>3}, y: {y:0>3}")
-            HU = f"{HU:0>4}"
-            label = f"{label:0>3}"
+            # HU = f"{HU:0>4}"
+            # label = f"{label:0>3}"
             self.update_label_meta_info(HU = HU, Label = label, X = x, Y = y)
         else:
             # self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}, HU: {HU}, x: {x:0>3}, y: {y:0>3}")
