@@ -131,8 +131,15 @@ class DICOM_serie_manager(PatchedFrame):
         sort_by_acquisition_time = True
         sort_by_series_number = True
         
-        for serie_ID in series_file_names:
-            series_file_names[serie_ID].Execute()
+        for serie_ID in series_IDs:
+            try:
+                series_file_names[serie_ID].Execute()
+            except RuntimeError:
+                print("Runtime error, skipping")
+                del series_file_names[serie_ID]
+                del self.DICOM_serie_instances[serie_ID]
+                continue
+            
             if not series_file_names[serie_ID].HasMetaDataKey(0, "0008|0032"):
                 logging.warning(f"Series {serie_ID} does not have the key 0008|0032 (acquisition time).")
                 sort_by_acquisition_time = False
