@@ -24,13 +24,17 @@ class SAM_segmentation:
     def __str__(self) -> str:
         return "ITK viewer plugin SAM segmentation"
     
-    def get_segmentation_options(self, parent):
-        self.layer_height = 1
+    def load_segmentation_model(self):
         self.sam_model = sam_model_registry[self.model_type](checkpoint=os.path.join(os.getcwd(), "models", self.checkpoint))
         
         if torch.cuda.is_available():
             self.sam_model.to(device = self.device) 
-        self.sam_predictor = SamPredictor(self.sam_model)        
+        self.sam_predictor = SamPredictor(self.sam_model)
+
+    def get_segmentation_options(self, parent):
+        self.layer_height = 1
+        self.load_segmentation_model()
+
         self.__previous_state = 0
         self.auto_sam = False
         
