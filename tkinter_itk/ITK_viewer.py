@@ -36,6 +36,12 @@ for finder, name, ispkg in pkgutil.iter_modules([plugin_path]):
             discovered_plugins[name[18:]] = module.main_class
         except ModuleNotFoundError as e:
             logging.error(f"Failed to import plugin: {e}")
+        except AttributeError as e:
+            logging.error(f"Failed to import plugin, did you inlcude a main_class?\nError code: {e}")
+        except Exception as e:
+            logging.error(f"Failed to import plugin: {e}")
+
+
 
 logging.info(discovered_plugins)
 
