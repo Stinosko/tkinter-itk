@@ -109,7 +109,7 @@ class manual_segmentation:
         self.update_segmentation()
 
     def update_segmentation(self):
-        self.parent.ITKviewer.update_image()
+        self.parent.ITKviewer.active_widget.update_image()
     
     def destroy(self, event=None):
         print("destroy manual segmentation")
