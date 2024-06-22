@@ -3,7 +3,7 @@ import logging
 import tkinter as tk  
 import SimpleITK as sitk
 from .DICOM_serie_instance import DICOM_serie_instance
-from .Utils import PatchedFrame
+from ..Utils import PatchedFrame
 
 def GetGDCMSeriesIDs_recursive(DICOM_DIR, reader):
     """placeholder"""

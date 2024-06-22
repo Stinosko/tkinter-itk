@@ -5,7 +5,7 @@ import numpy as np
 import tkinter as tk 
 import SimpleITK as sitk
 from PIL import Image, ImageTk
-from .Utils import PatchedFrame
+from ..Utils import PatchedFrame
 
 def retag(tag, widget):
     "Binds an tag to a widget and all its descendants."

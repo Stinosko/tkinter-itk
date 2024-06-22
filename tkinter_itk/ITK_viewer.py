@@ -11,7 +11,7 @@ from .menu.segmentationMenu import SegemntationMenu
 
 from .topbar import Topbar
 from .ImagesFrameManager import imagesFrameManager, example_dual_frame_list
-from .DICOM_serie_manager import DICOM_serie_manager
+from .DICOM_manager.DICOM_serie_manager import DICOM_serie_manager
 from .segmentation_serie_manager import Segmentation_serie_manager
 from .Annotation_manager import Annotation_manager
 #import progressbar
@@ -139,6 +139,10 @@ class MainWindow(ttk.Frame):
             self.DICOM_serie_manager.load_image_serie(image, image_name, add = add)
         self.DICOM_serie_manager.reset_preview_frames()
         return image_name
+
+    def load_dicom_folder(self):
+        DICOM_DIR = self.filemenu.get_filename()
+        self.DICOM_serie_manager.load_DICOM_serie(DICOM_DIR)
 
     def load_segmentation(self, segmentation: sitk.Image = None, serie_id: str = None):
         """ Placeholder"""
