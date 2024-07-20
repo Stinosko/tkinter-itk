@@ -2,7 +2,7 @@ import logging
 import tkinter as tk
 from tkinter import Menu, ttk
 import os 
-
+import pyorthanc
 import SimpleITK as sitk
 
 from .menu.fileMenu import FileMenu
@@ -14,8 +14,10 @@ from .ImagesFrameManager import imagesFrameManager, example_dual_frame_list
 from .DICOM_manager.DICOM_serie_manager import DICOM_serie_manager
 from .segmentation_serie_manager import Segmentation_serie_manager
 from .Annotation_manager import Annotation_manager
+from .Utils import AutoScrollbar
 #import progressbar
 
+from typing import List
 
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
@@ -66,25 +68,23 @@ class Colors:
 
 
 
-class MainWindow(ttk.Frame):
+class ITKWindow(ttk.Frame):
     """ Main window class """
     plugins = {}
     
     segmentation_modes = ["None"]
     current_segmentation_mode = segmentation_modes[0]
 
-    def __init__(self, mainframe, threading = False):
+    def __init__(self, mainframe, threading = False, *args, **kwargs):
         """ Initialize the main Frame """
-        ttk.Frame.__init__(self, master=mainframe)
+        ttk.Frame.__init__(self, master=mainframe, *args, **kwargs)
         self.load_plugins()
         self.mainframe = mainframe
         self.threading = threading
-        self.master.title('ITK viewer')
-        self.master.geometry('800x800')  # size of the main window
-        self.current_segmentation_mode = tk.StringVar(self.master)
+        self.current_segmentation_mode = tk.StringVar(self)
         self.current_segmentation_mode.set(self.segmentation_modes[0])
         #TO DO: https://stackoverflow.com/a/41679642
-        self.menubar = Menu(self.master)
+        self.menubar = Menu(self)
         
         self.filemenu = FileMenu(self, self.menubar)
         self.menubar.add_cascade(label="Dicom", menu=self.filemenu)
@@ -97,36 +97,36 @@ class MainWindow(ttk.Frame):
         self.helpmenu = HelpMenu(self, self.menubar)
         self.menubar.add_cascade(label="Help", menu=self.helpmenu)
         
-        self.master.config(menu = self.menubar)
+        self.nametowidget('.').config(menu = self.menubar)
 
-        self.label1 = Topbar(self, self.master)
+        self.label1 = Topbar(self, self)
         self.label1.grid(row=0, column=0, columnspan = 3, pady=5, sticky = tk.W + tk.E)
 
-        self.DICOM_serie_manager = DICOM_serie_manager(self.master, bg="blue")
+        self.DICOM_serie_manager = DICOM_serie_manager(self, bg="blue")
         self.DICOM_serie_manager.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
         
         self.annotation_manager = Annotation_manager(self, self.DICOM_serie_manager)
         self.segmentation_serie_manager = Segmentation_serie_manager(self, self.DICOM_serie_manager)
 
-        self.ITKviewer = imagesFrameManager(self.mainframe, image_label_layout = example_dual_frame_list, bg = "yellow", parent=self, threading=threading) # create ITK Frame
+        self.ITKviewer = imagesFrameManager(self, image_label_layout = example_dual_frame_list, bg = "yellow", parent=self, threading=threading) # create ITK Frame
         # self.ITKviewer = ITKviewerFrame(self.mainframe, bg = "red") # create ITK Frame
         # self.ITKviewer = ITKsegmentationFrame(self.mainframe, bg = "red") # create ITK Frame
         self.ITKviewer.grid(row=1, column=1, columnspan = 2, sticky= tk.N + tk.S + tk.E + tk.W)  # show ITK 
         
         self.ITKviewer.rowconfigure(0, weight=1)
         self.ITKviewer.columnconfigure(0, weight=1)
-        self.master.rowconfigure(1, weight=1)
-        self.master.columnconfigure(1, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.columnconfigure(1, weight=1)
 
 
-        self.label3 = tk.Label(self.master, text="Placeholder bottom", bg="green")
+        self.label3 = tk.Label(self, text="Placeholder bottom", bg="green")
         self.label3.grid(row=2, column=0, columnspan = 3, pady=1, sticky = tk.W + tk.E)
 
         self.np_CT_array = None
 
     def new_image_input(self, image: sitk.Image = None, image_name: str = None, add = False):
         """ Placeholder"""
-        self.master.update_idletasks()
+        self.update_idletasks()
         logging.info('Importing patient data')
         if image is None:
             DICOM_DIR = self.filemenu.get_filename()
@@ -146,7 +146,7 @@ class MainWindow(ttk.Frame):
 
     def load_segmentation(self, segmentation: sitk.Image = None, serie_id: str = None):
         """ Placeholder"""
-        self.master.update_idletasks()
+        self.update_idletasks()
         logging.info('Importing segmentation')
         if serie_id is None:
             logging.error('No segmentation name given')
@@ -186,6 +186,111 @@ class MainWindow(ttk.Frame):
         await self.ITKviewer.update_image_if_needed()
         return super().update()
 
+
+class orthancWindow(ttk.Frame):
+    """ Orthanc window class """
+    def __init__(self, mainframe, orthanc, *args, **kwargs):
+        """ Initialize the main Frame """
+        ttk.Frame.__init__(self, mainframe,  *args, **kwargs)
+        self.orthanc = orthanc
+
+        logging.info(pyorthanc.find_studies(orthanc))
+        self.label1 = tk.Label(self, text="Orthanc studies")
+        self.label1.grid(row=0, column=0, sticky= tk.N + tk.W)
+
+        self.tree = ttk.Treeview(self, columns=("Study ID", "Patient Name", "Description", "Patient ID", "Date", "Modalities"), show="headings")
+        self.tree.grid(row=1, column=0, sticky= tk.N + tk.W + tk.E)
+        self.tree.column("#0", width=0, stretch=False)  # Hide the first column
+        # self.tree["columns"] = ("Study ID", "Patient Name", "Description", "Patient ID", "Date", "Modalities")
+        
+        for column in self.tree["columns"][:-1]:
+            self.tree.column(column, stretch=False, width=100)  # Set a fixed width
+            self.tree.heading(column, text=column, anchor=tk.W)
+        
+        self.tree.column("Modalities", stretch=True, width=100)  # Set a fixed width
+        self.tree.heading("Modalities", text="Modalities", anchor=tk.W)
+
+        self.tree_scrollbar_x = AutoScrollbar(self, orient='horizontal', command=self.tree.xview)
+        self.tree.configure(xscrollcommand=self.tree_scrollbar_x.set)
+        self.tree_scrollbar_x.grid(row=2, column=0, sticky=(tk.E, tk.W, tk.N))
+
+        self.tree_scrollbar_y = AutoScrollbar(self, orient='vertical', command=self.tree.yview)
+        self.tree.configure(yscrollcommand=self.tree_scrollbar_y.set)
+        self.tree_scrollbar_y.grid(row=1, column=1, sticky=(tk.N, tk.S + tk.W))
+
+        self.rowconfigure(1, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        self.populate()
+
+    def populate(self):
+        patient_studies: List[pyorthanc.Study] = pyorthanc.find_studies(self.orthanc)
+        
+        self.tree.configure(height=len(patient_studies))
+
+        for study in patient_studies:
+            print(dir(study))
+            modalities = set( [series.modality for series in study.series] )
+            
+            try:
+                uid = study.uid if hasattr(study, 'uid') else "No UID"
+            except Exception as e:
+                print(e)
+                uid = "No UID"
+            
+            try:
+                patient_identifier = study.patient_identifier if hasattr(study, 'patient_identifier') else "No patient identifier"
+            except Exception as e:
+                print(e)
+                continue
+            
+            try:
+                description = study.description if hasattr(study, 'description') else "No description"
+            except Exception as e:
+                print(e)
+                description = "No description"
+            
+            try:
+                patient_information = study.patient_information["PatientID"] if hasattr(study, 'patient_information') else "No patient information"
+            except Exception as e:
+                print(e)
+                patient_information = "No patient information"
+            
+            try:
+                date = study.date if hasattr(study, 'date') else "No date"
+            except Exception as e:
+                print(e)
+                date = "No date"
+                            
+            self.tree.insert("", tk.END, text=uid, values=(uid, patient_identifier, description, patient_information, study.date, modalities))
+
+class MainWindow(ttk.Notebook):
+    """ Main window class """
+    def __init__(self, mainframe, threading = False):
+        """ Initialize the main Frame """
+        ttk.Notebook.__init__(self, master=mainframe, height=100)
+        self.mainframe = mainframe
+        self.threading = threading
+        self.master.title('ITK viewer')
+        self.master.geometry('800x800')  # size of the main window
+
+        self.s = ttk.Style()
+        self.s.configure('Danger.TFrame', background='sky blue', borderwidth=5, relief='raised')
+        self.ITKviewer = ITKWindow(self, threading=threading, style='Danger.TFrame') # create ITK Frame
+
+        self.add(self.ITKviewer, text="ITK viewer")
+        self.grid(row=0, column=0, sticky= tk.N + tk.S + tk.E + tk.W)
+    
+        self.mainframe.rowconfigure(0, weight=1)
+        self.mainframe.columnconfigure(0, weight=1)
+
+    def add_orthanc(self, orthanc):
+        self.add(orthancWindow(self, orthanc, style='Danger.TFrame'), text="Othanc")
+
+
+    async def update(self) -> None:
+        return super().update()
+    
 def donothing():
     """ Place holder callback"""
 

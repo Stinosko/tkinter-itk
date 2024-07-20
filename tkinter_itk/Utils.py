@@ -1,4 +1,5 @@
-import tkinter as tk  
+import tkinter as tk
+from tkinter import ttk
 import logging
 import SimpleITK as sitk
 import cv2
@@ -6,8 +7,71 @@ import numpy as np
 import os
 import time
 
+# Creating class AutoScrollbar
+# https://www.geeksforgeeks.org/autohiding-scrollbars-using-python-tkinter/
+class AutoScrollbar(tk.Scrollbar):
+       
+    # Defining set method with all 
+    # its parameter
+    def set(self, low, high):
+           
+        if float(low) <= 0.0 and float(high) >= 1.0:
+               
+            # Using grid_remove
+            self.tk.call("grid", "remove", self)
+        else:
+            self.grid()
+        tk.Scrollbar.set(self, low, high)
+       
+    # Defining pack method
+    def pack(self, **kw):
+           
+        # If pack is used it throws an error
+        raise (tk.TclError,"pack cannot be used with this widget")
+       
+    # Defining place method
+    def place(self, **kw):
+           
+        # If place is used it throws an error
+        raise (tk.TclError, "place cannot be used  with this widget")
 
 
+
+# https://blog.teclado.com/tkinter-scrollable-frames/
+class ScrollableFrame(ttk.Frame):
+    def __init__(self, container, *args, **kwargs):
+        super().__init__(container, *args, **kwargs)
+        self.grid_propagate(False)
+        self.canvas = tk.Canvas(self)
+        self.canvas.grid(row=0, column=0, sticky="news")
+
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        scrollbar_h = ttk.Scrollbar(self, orient="horizontal", command=self.canvas.xview)
+        
+        scrollbar_h.grid(row=1, column=0, sticky="ew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        
+        self.canvas.configure(yscrollcommand=scrollbar.set, xscrollcommand=scrollbar_h.set, background="purple1") 
+        self.canvas.config(scrollregion=self.canvas.bbox("all"))
+
+
+        self.scrollable_frame = ttk.Frame(self.canvas)
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        
+
+        self.scrollable_frame.bind("<Configure>", lambda e: self.update_scrollregion())
+
+
+
+
+        self.scrollable_frame.rowconfigure(0, weight=1)
+        self.scrollable_frame.columnconfigure(0, weight=1)
+
+        self.grid_rowconfigure(0, weight=1)   
+        self.grid_columnconfigure(0, weight=1)
+
+    def update_scrollregion(self):
+        self.canvas.config(scrollregion=self.canvas.bbox("all"))
 
 # https://stackoverflow.com/questions/38329996/enable-mouse-wheel-in-spinbox-tk-python
 class Spinbox(tk.Spinbox):
