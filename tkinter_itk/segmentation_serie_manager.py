@@ -20,6 +20,7 @@ class Segmentation_serie_manager:
         if serie_ID not in self.segmentation_images:
             self.segmentation_images[serie_ID] = {}
             self.segmentation_stats[serie_ID] = {}
+            print('Added segmentation serie: ' + serie_ID)
         
         if name in self.segmentation_images[serie_ID]:
             logging.warning('Segmentation name already exists, overwriting')
@@ -77,6 +78,11 @@ class Segmentation_serie_manager:
         self.mainframe.ITKviewer.update_images()
 
     def load_segmentation(self, segmentation, serie_id, name = "default"):
+        if serie_id not in self.segmentation_images:
+            self.segmentation_images[serie_id] = {}
+            self.segmentation_stats[serie_id] = {}
+            logging.info('Added segmentation serie: ' + serie_id)
+        
         if name in self.segmentation_images[serie_id]:
             logging.warning('Segmentation name already exists, overwriting')
             
@@ -104,7 +110,7 @@ class Segmentation_serie_manager:
 
     def get_preview(self, serie_ID):
         if "preview" not in self.segmentation_images[serie_ID]:
-            logging.warning('No preview to get')
+            logging.debug('No preview to get')
             return None
         return self.segmentation_images[serie_ID]["preview"]
     

@@ -177,7 +177,7 @@ class imagesFrameManager(ttk.PanedWindow):
     def set_active_widget(self, widget):
         """placeholder"""
         if self.active_widget == widget:
-            logging.warning("widget is already active")
+            logging.debug("widget is already active")
             return
         if self.active_widget is not None:
             self.active_widget.on_focus_out()

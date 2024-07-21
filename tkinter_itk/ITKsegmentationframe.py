@@ -25,8 +25,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.segmentation_serie_manager = self.FrameManager.parent.segmentation_serie_manager
 
         if self.serie_ID is None:
-            self.ITK_seg_image = sitk.Image(self.ITK_image.GetSize(), sitk.sitkUInt8)
-            self.ITK_seg_image.CopyInformation(self.ITK_image)
+            self.ITK_seg_image = None
         else:
             self.ITK_seg_image = self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True)
         
@@ -45,7 +44,10 @@ class ITKsegmentationFrame(ITKviewerFrame):
     
     def get_image_from_seg_array(self):
         """placeholder"""
-        image_segmentation_array = sitk.GetArrayFromImage(sitk.LabelToRGB(self.ITK_seg_image[:,:, self.slice_index]))
+        if self.ITK_seg_image is None:
+            return Image.new("RGB", (512,512), (255,255,255))
+        else:
+            image_segmentation_array = sitk.GetArrayFromImage(sitk.LabelToRGB(self.ITK_seg_image[:,:, self.slice_index]))
 
         return Image.fromarray(image_segmentation_array, "RGB")
 
