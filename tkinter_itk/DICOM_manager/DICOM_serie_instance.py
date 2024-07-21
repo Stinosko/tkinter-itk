@@ -4,8 +4,10 @@ from tkinter import ttk, Label
 import numpy as np
 import tkinter as tk 
 import SimpleITK as sitk
-from PIL import Image, ImageTk
+from PIL import ImageTk
 from ..Utils import PatchedFrame
+import PIL.Image
+import PIL.ImageDraw
 
 def retag(tag, widget):
     "Binds an tag to a widget and all its descendants."
@@ -55,81 +57,39 @@ def clone_widget(widget, master=None):
 
     return cloned
 
-def normalize_np_array_between_0_and_255(np_array):
-    minimum_hu = np_array.min()
-    maximum_hu  = np_array.max()
-    
-    np_array[np_array < minimum_hu] = minimum_hu
-    np_array[np_array > maximum_hu] = maximum_hu
-    np_array = np.divide(np_array - np_array.min(), (np_array.max() - np_array.min()))*255
-    np_array = np_array.astype(np.uint8)
-    return np_array
-
 class DICOM_serie_instance(PatchedFrame):
     """placeholder"""
-    def __init__(self, mainframe, DICOM_DIR, serie_ID, reader, **kwargs):
-        PatchedFrame.__init__(self, mainframe, **kwargs)
+    def __init__(self, mainframe, serie_ID, **kwargs):
+        super().__init__(mainframe, **kwargs)
         self.mainframe = mainframe
-        self.DICOM_DIR = DICOM_DIR
         self.serie_ID = serie_ID
-        self.reader = reader
         self.ITK_image = None # preserving RAM if entire serie is not needed
 
-        if self.reader.GetImageIO() == "":
-            self.total_slices = len(self.reader.GetFileNames())
-            self.preview_reader = sitk.ImageFileReader()
-            self.preview_reader.SetFileName(self.reader.GetFileNames()[round(self.total_slices/2) - 1])
-            self.preview_ITK_image = self.preview_reader.Execute()
-            
+        self.total_slices = None
+        self.preview_image = None
 
-            self.preview_image = sitk.GetArrayFromImage(self.preview_ITK_image)
-            self.preview_image = normalize_np_array_between_0_and_255(self.preview_image[0,:,:])
-            self.preview_image = self.preview_image.astype(np.uint8)
-            self.preview_image = Image.fromarray(self.preview_image)
-            self.preview_image = ImageTk.PhotoImage(self.preview_image)
-
-        else:
-            self.ITK_image = self.reader.Execute()
-            if self.ITK_image.GetDimension() == 4:
-                self.ITK_image = self.ITK_image[:,:,:,0]
-            elif self.ITK_image.GetDimension() > 4:
-                logging.error("Image dimension is greater than 4. Cannot be displayed.")
-                raise ValueError("Image dimension is greater than 4. Cannot be displayed.")
-            elif self.ITK_image.GetDimension() == 2:
-                self.ITK_image = sitk.JoinSeries([self.ITK_image])
-            elif self.ITK_image.GetDimension() == 3:
-                pass
-            elif self.ITK_image.GetDimension() == 1:
-                logging.error("Image dimension is less than 2. Cannot be displayed.")
-                raise ValueError("Image dimension is less than 2. Cannot be displayed.")
-            
-            self.ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
-            self.ITK_image.SetOrigin((0,0,0))
-            self.total_slices = self.ITK_image.GetSize()[-1]
-            self.preview_reader = None
-            self.preview_ITK_image = None
-
-            self.preview_image = sitk.GetArrayFromImage(self.ITK_image[:,:,round(self.total_slices/2) - 1])
-            
-            self.preview_image = normalize_np_array_between_0_and_255(self.preview_image)
-            self.preview_image = self.preview_image.astype(np.uint8)
-            self.preview_image = Image.fromarray(self.preview_image)
-            self.preview_image = ImageTk.PhotoImage(self.preview_image)
-
-        self.preview_label = Label(self, image=self.preview_image, width=150, height=150)
+        self.preview_label = Label(self, width=150, height=150)
         self.preview_label.grid(row=0, column=0, sticky='w')
+
+        self.set_preview_image(None)
+        
         self.config(width=125)
 
-        if self.reader.GetImageIO() == "":
-            self.button = ttk.Button(self, text=self.serie_ID)
-        elif self.reader.HasMetaDataKey(key = "0008|103e", slice = 0):
-            self.button = ttk.Button(self, text=self.reader.GetMetaData(key = "0008|103e", slice = 0))
-        else:
-            self.button = ttk.Button(self, text=self.serie_ID)
-            
+        self.button = ttk.Button(self, text=self.serie_ID)
         self.button.grid(row=1, column=0)
 
         self.make_draggable()
+
+    def set_preview_image(self, image):
+        if image is None:
+            image = PIL.Image.new("RGB", (512,512), (255,255,255))
+            draw = PIL.ImageDraw.Draw(image)
+            draw.text((10,10), "No image loaded", fill="black")
+        self.preview_image = ImageTk.PhotoImage(image)
+        self.preview_label.config(image=self.preview_image)
+        self.preview_label.image = self.preview_image
+
+
 
     def make_draggable(self):
         retag("drag",self)
@@ -185,27 +145,22 @@ class DICOM_serie_instance(PatchedFrame):
         else:
             return self.ITK_image[:,:,slice_number]
     
-    def load_serie(self):
-        if self.ITK_image is None:
-            self.ITK_image = self.reader.Execute()
-            self.ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
-            self.ITK_image.SetOrigin((0,0,0))
-        return self.ITK_image
+    def load_serie(self) -> sitk.Image:
+        """ Load the serie into memory as a SimpleITK image """
+        logging.warning(f"Not implemented: {self.__class__.__name__}.load_serie")
 
     def unload_serie(self):
+        """ Unload the serie from memory """
         self.ITK_image = None
 
-    def get_serie_size(self):
+    def get_serie_size(self) -> tuple:
+        """" Get the size of the serie """
         if self.ITK_image is None:
-            size = list(self.preview_reader.GetSize())
-            size[-1] = self.total_slices
-        else:
-            size = self.ITK_image.GetSize()
-        return tuple(size)
+            logging.warning(f"serie {self.serie_ID} is not loaded")
+            self.load_serie()
+            return tuple(self.ITK_image.GetSize) if self.ITK_image is not None else None
+        return tuple(self.ITK_image.GetSize())
     
-    def get_serie_image(self):
-        if self.ITK_image is None:
-            self.ITK_image = self.reader.Execute()
-            self.ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
-            self.ITK_image.SetOrigin((0,0,0))
-        return self.ITK_image
+    def get_serie_image(self) -> sitk.Image:
+        """ Get the SimpleITK image of the serie """
+        logging.warning(f"Not implemented: {self.__class__.__name__}.get_serie_image")

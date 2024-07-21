@@ -66,7 +66,8 @@ class ITKviewerFrame(tk.Frame):
         self.interpolate = Image.NEAREST
         self.ITK_interpolate = sitk.sitkNearestNeighbor
         
-        if self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs() is not None:
+        serie_IDs = self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs()
+        if serie_IDs is not None and len(serie_IDs) > 0:
             self.serie_ID = list(self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs())[0]
             self.ITK_image = self.FrameManager.parent.DICOM_serie_manager.get_serie_reader(self.serie_ID).Execute()
         else:
@@ -90,7 +91,10 @@ class ITKviewerFrame(tk.Frame):
         self.canvas_image_id = None  # put image on canvas
         self._update_image()
 
-        self.slider = ttk.Scale(self.frame, from_=0, to=self.ITK_image.GetSize()[2] - 1, orient='vertical', command=self.slider_changed)
+        if self.ITK_image is not None:
+           self.slider = ttk.Scale(self.frame, from_=0, to=self.ITK_image.GetSize()[2] - 1, orient='vertical', command=self.slider_changed)
+        else:
+            self.slider = ttk.Scale(self.frame, from_=0, to=1, orient='vertical', command=self.slider_changed)
         self.slider.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
         self.slider.set(self.slice_index)
 
@@ -167,6 +171,10 @@ class ITKviewerFrame(tk.Frame):
     def get_image_from_HU_array(self, img_type="RGBA"):
         """ Return image from HU array """
         # https://github.com/jonasteuwen/SimpleITK-examples/blob/master/examples/apply_lut.py
+        if self.ITK_image is None:
+            logging.error("No ITK_image loaded, cannot get image from HU array")
+            return None
+
         logging.debug("get_image_from_HU_array")
         minimum_hu = self.level - (self.window/2)
         maximum_hu  = self.level + (self.window/2)
@@ -272,7 +280,7 @@ class ITKviewerFrame(tk.Frame):
 
     def load_new_CT(self, window: int = None, level: int = None, ITK_image: sitk.Image = None, serie_ID: str = None, update_image: bool = True):
         """placeholder"""
-        logging.debug("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
+        logging.info("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
 
         # not using self.delete_all_annotations() because update_image should not be called
         self.annotation_manager.delete_all_serie_ID_annotations(self.serie_ID)
@@ -281,7 +289,7 @@ class ITKviewerFrame(tk.Frame):
             self.ITK_image = ITK_image
         else: 
             logging.warning("No ITK_image passed")
-
+            self.DICOM_serie_manager.get_serie_image(serie_ID)
         self.serie_ID = serie_ID
         # print("serie_ID", serie_ID)
         self.slice_index = 0
@@ -336,6 +344,10 @@ class ITKviewerFrame(tk.Frame):
 
     def next_slice(self):
         logging.debug("Next slice")
+        if self.ITK_image is None:
+            logging.error("No ITK_image loaded, scrolling not possible")
+            return
+
         self.image_needs_updating = True
         self.slice_index += 1
         
@@ -349,8 +361,12 @@ class ITKviewerFrame(tk.Frame):
         self.update_image()
         
     def previous_slice(self):
-        self.image_needs_updating = True
         logging.debug("Previous slice")
+        if self.ITK_image is None:
+            logging.error("No ITK_image loaded, scrolling not possible")
+            return
+        
+        self.image_needs_updating = True
         self.slice_index -= 1
         
         if self.slice_index < 0:
@@ -432,6 +448,10 @@ class ITKviewerFrame(tk.Frame):
         return points
     
     def update_label_meta_info_value(self, event):
+        if self.ITK_image is None:
+            logging.debug("No ITK_image loaded, no meta info to update")
+            return
+        
         x, y = self.get_mouse_location_dicom(event)
         if x < 0 or x >= self.ITK_image.GetSize()[0] or y < 0 or y >= self.ITK_image.GetSize()[1] or not self.is_mouse_on_image(event):
             logging.debug("mouse out of bounds")

@@ -11,7 +11,7 @@ from .menu.segmentationMenu import SegemntationMenu
 
 from .topbar import Topbar
 from .ImagesFrameManager import imagesFrameManager, example_dual_frame_list
-from .DICOM_manager.DICOM_serie_manager import DICOM_serie_manager
+from .DICOM_manager.DICOM_serie_manager_sitk import DICOM_serie_manager_sitk
 from .segmentation_serie_manager import Segmentation_serie_manager
 from .Annotation_manager import Annotation_manager
 from .Utils import AutoScrollbar
@@ -20,12 +20,14 @@ from .Utils import AutoScrollbar
 from typing import List
 
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 
 #https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/
 import importlib
 import pkgutil
+import logging
+import datetime
 
 discovered_plugins = {}
 
@@ -102,7 +104,7 @@ class ITKWindow(ttk.Frame):
         self.label1 = Topbar(self, self)
         self.label1.grid(row=0, column=0, columnspan = 3, pady=5, sticky = tk.W + tk.E)
 
-        self.DICOM_serie_manager = DICOM_serie_manager(self, bg="blue")
+        self.DICOM_serie_manager = DICOM_serie_manager_sitk(self, bg="blue")
         self.DICOM_serie_manager.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
         
         self.annotation_manager = Annotation_manager(self, self.DICOM_serie_manager)
@@ -193,7 +195,7 @@ class orthancWindow(ttk.Frame):
         """ Initialize the main Frame """
         ttk.Frame.__init__(self, mainframe,  *args, **kwargs)
         self.orthanc = orthanc
-
+        self.ITK_viewer = mainframe.ITKviewer
         logging.info(pyorthanc.find_studies(orthanc))
         self.label1 = tk.Label(self, text="Orthanc studies")
         self.label1.grid(row=0, column=0, sticky= tk.N + tk.W)
@@ -263,6 +265,8 @@ class orthancWindow(ttk.Frame):
                 date = "No date"
                             
             self.tree.insert("", tk.END, text=uid, values=(uid, patient_identifier, description, patient_information, study.date, modalities))
+            
+
 
 class MainWindow(ttk.Notebook):
     """ Main window class """
@@ -285,7 +289,9 @@ class MainWindow(ttk.Notebook):
         self.mainframe.columnconfigure(0, weight=1)
 
     def add_orthanc(self, orthanc):
-        self.add(orthancWindow(self, orthanc, style='Danger.TFrame'), text="Othanc")
+        self.orthanc: pyorthanc.Orthanc = orthanc
+        self.orthanc_window = orthancWindow(self, orthanc, style='Danger.TFrame')
+        self.add( self.orthanc_window, text="Orthanc")
 
 
     async def update(self) -> None:
