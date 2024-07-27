@@ -34,14 +34,14 @@ class DICOM_serie_instance_pydicom(DICOM_serie_instance):
         image.SetOrigin(self.get_dicom_value( pytag = 'ImagePositionPatient'))
 
         logging.info(f"PixelSpacing: {self.get_dicom_value(pytag = 'PixelSpacing')}")
-        spacing = self.get_dicom_value(pytag = 'PixelSpacing')
+        spacing: list = self.get_dicom_value(pytag = 'PixelSpacing')
 
         if len(spacing) == 1:
             spacing = [spacing[0], spacing[0]]
             spacing.append(self.get_dicom_value(pytag = 'SpacingBetweenSlices') if self.get_dicom_value(pytag = 'SpacingBetweenSlices') is not None else 1)
         elif len(spacing) == 2:
             # slice spacing is not always available. If it isn't, 
-            spacing.append(self.get_dicom_value(pytag = 'SpacingBetweenSlices') if self.get_dicom_value(pytag = 'SpacingBetweenSlices') is not None else 1)
+            spacing.insert(0, self.get_dicom_value(pytag = 'SpacingBetweenSlices') if self.get_dicom_value(pytag = 'SpacingBetweenSlices') is not None else 1)
         elif len(spacing) >= 4:
             logging.warn(f"PixelSpacing is potentially abnormal: {spacing}")
             pass

@@ -4,6 +4,7 @@ import tkinter as tk
 import SimpleITK as sitk
 from .DICOM_serie_instance import DICOM_serie_instance
 from .DICOM_serie_manager import DICOM_serie_manager
+from .DICOM_serie_instance_sitk import DICOM_serie_instance_sitk
 from .DICOM_serie_instance_pydicom import DICOM_serie_instance_pydicom
 from ..Utils import PatchedFrame
 import pydicom
@@ -12,6 +13,7 @@ from pydicom import dcmread, Dataset
 from pydicom.uid import generate_uid
 from pydicom.misc import is_dicom
 from ..Utils import timer_func
+from ..ITK_Utils import sitk_2_pydicom
 
 class default_namespace:
     """ Use this information if info is not available"""
@@ -27,6 +29,7 @@ class DICOM_serie_manager_pydicom(DICOM_serie_manager):
         self.DICOM_DIR = None 
         self.fs = None
         self.file_instances = {}
+        self.custom_sitk_images = {}
 
         if os.path.exists(os.path.join(os.getcwd(), "test-data")):
             self.DICOM_DIR = os.path.join(os.getcwd(), "test-data")
@@ -35,7 +38,6 @@ class DICOM_serie_manager_pydicom(DICOM_serie_manager):
             self.DICOM_DIR = None
         # self.DICOM_DIR = os.path.join(os.path.dirname(__file__), "test-data")
 
-        self.set_preview_frames()
 
     def load_DICOM_serie(self, DICOM_DIR = None, instance_list = None, image_name = None):
         if DICOM_DIR is None and instance_list is None:
@@ -60,6 +62,26 @@ class DICOM_serie_manager_pydicom(DICOM_serie_manager):
         # self.fs = FileSet()
         # self.fs = self._add_dicom_files_from_folder(DICOM_DIR, self.fs)
 
+        self.reset_preview_frames()
+
+    def load_image_serie(self, object: dict | sitk.Image = None, image_name: str = "placeholder", add: bool = False):
+        if object is None:
+            logging.warning("Object is None. Please provide an object - returning")
+            return
+
+        if isinstance(object, dict):
+            # Merge the two dictionaries if add is True
+            self.file_instances = object if add else { **self.file_instances, **object }
+        
+        if isinstance(object, sitk.Image):
+            # Create a new serie_ID
+            serie_ID = image_name
+            if serie_ID in self.custom_sitk_images.keys():
+                logging.warning(f"serie_ID {serie_ID} already exists. Overwriting.")
+            self.custom_sitk_images[serie_ID] = object
+            
+
+        self.reset_preview_frames()
 
     def set_preview_frames(self):
         # Add 9-by-5 buttons to the frame
@@ -71,6 +93,41 @@ class DICOM_serie_manager_pydicom(DICOM_serie_manager):
                                                                                fileInstances = self.file_instances[SerieID], 
                                                                                serie_ID = SerieID)
             self.DICOM_serie_instances[SerieID].grid(row=i, column=0, sticky='news')
+        
+        
+        
+        frame_offset = len(self.file_instances.keys())
+        
+        temp_folder = os.path.join(os.getcwd(), ".temp")
+        
+        for i, SerieID in enumerate(self.custom_sitk_images.keys()):
+            if SerieID in self.file_instances.keys():
+                logging.warning(f"serie_ID {SerieID} already exists in the file_instances!!!!!!!")
+                continue
+            
+            writer = sitk.ImageFileWriter()
+            
+            writer.KeepOriginalImageUIDOn()
+            writer.SetImageIO("NiftiImageIO")
+            writer.SetFileName(os.path.join(temp_folder, SerieID + ".nii.gz"))
+            writer.Execute(self.custom_sitk_images[SerieID])
+
+            reader = sitk.ImageSeriesReader()
+            reader.SetImageIO("NiftiImageIO")
+            reader.SetFileNames([os.path.join(temp_folder, SerieID)])
+            reader.LoadPrivateTagsOn()
+            reader.MetaDataDictionaryArrayUpdateOn()
+            
+            itk_image = reader.Execute()
+            print(itk_image.GetSize())
+            print(itk_image.GetSpacing())
+            print(itk_image.GetOrigin())
+            print(itk_image.GetDirection())
+
+            self.DICOM_serie_instances[SerieID] = DICOM_serie_instance_sitk(self.scrollable_frame,
+                                                                            reader = reader,
+                                                                            serie_ID = SerieID)
+            self.DICOM_serie_instances[SerieID].grid(row=i + frame_offset, column=0, sticky='news')
         
         # Update buttons frames idle tasks to let tkinter calculate frame sizes
         self.update_idletasks()

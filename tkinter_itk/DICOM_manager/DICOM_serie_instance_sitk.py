@@ -29,6 +29,7 @@ class DICOM_serie_instance_sitk(DICOM_serie_instance):
             # self.preview_image = ImageTk.PhotoImage(self.preview_image)
 
         else:
+            logging.warning(f"ImageIO: {self.reader.GetImageIO()}")
             self.ITK_image = self.reader.Execute()
             if self.ITK_image.GetDimension() == 4:
                 self.ITK_image = self.ITK_image[:,:,:,0]
@@ -81,9 +82,27 @@ class DICOM_serie_instance_sitk(DICOM_serie_instance):
     
     def load_serie(self):
         if self.ITK_image is None:
-            self.ITK_image = self.reader.Execute()
-            self.ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
-            self.ITK_image.SetOrigin((0,0,0))
+            if self.reader.GetImageIO() == "":
+                logging.warning("ImageIO is empty. Cannot load serie?")
+
+            else:
+                logging.warning(f"ImageIO: {self.reader.GetImageIO()}")
+                self.ITK_image = self.reader.Execute()
+                if self.ITK_image.GetDimension() == 4:
+                    self.ITK_image = self.ITK_image[:,:,:,0]
+                elif self.ITK_image.GetDimension() > 4:
+                    logging.error("Image dimension is greater than 4. Cannot be displayed.")
+                    raise ValueError("Image dimension is greater than 4. Cannot be displayed.")
+                elif self.ITK_image.GetDimension() == 2:
+                    self.ITK_image = sitk.JoinSeries([self.ITK_image])
+                elif self.ITK_image.GetDimension() == 3:
+                    pass
+                elif self.ITK_image.GetDimension() == 1:
+                    logging.error("Image dimension is less than 2. Cannot be displayed.")
+                    raise ValueError("Image dimension is less than 2. Cannot be displayed.")
+                
+                self.ITK_image.SetDirection((1,0,0,0,1,0,0,0,1))
+                self.ITK_image.SetOrigin((0,0,0))
         return self.ITK_image
 
     def get_serie_size(self):
