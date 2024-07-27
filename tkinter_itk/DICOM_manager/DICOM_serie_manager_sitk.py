@@ -152,7 +152,7 @@ class DICOM_serie_manager_sitk(DICOM_serie_manager):
         # Add 9-by-5 buttons to the frame
         
         self.DICOM_serie_instances = {}
-        for i, serie_ID in enumerate(self.get_serie_IDs()):
+        for i, serie_ID in enumerate(self.series_file_names.keys()):
             self.DICOM_serie_instances[serie_ID] = DICOM_serie_instance_sitk(self.scrollable_frame, serie_ID, self.get_serie_reader(serie_ID))
             self.DICOM_serie_instances[serie_ID].grid(row=i, column=0, sticky='news')
         

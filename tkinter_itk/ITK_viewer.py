@@ -12,9 +12,11 @@ from .menu.segmentationMenu import SegemntationMenu
 from .topbar import Topbar
 from .ImagesFrameManager import imagesFrameManager, example_dual_frame_list
 from .DICOM_manager.DICOM_serie_manager_sitk import DICOM_serie_manager_sitk
+from .DICOM_manager.DICOM_serie_manager_pydicom import DICOM_serie_manager_pydicom
 from .segmentation_serie_manager import Segmentation_serie_manager
 from .Annotation_manager import Annotation_manager
 from .Utils import AutoScrollbar
+import httpcore
 #import progressbar
 
 from typing import List
@@ -104,7 +106,7 @@ class ITKWindow(ttk.Frame):
         self.label1 = Topbar(self, self)
         self.label1.grid(row=0, column=0, columnspan = 3, pady=5, sticky = tk.W + tk.E)
 
-        self.DICOM_serie_manager = DICOM_serie_manager_sitk(self, bg="blue")
+        self.DICOM_serie_manager = DICOM_serie_manager_pydicom(self, bg="blue")
         self.DICOM_serie_manager.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
         
         self.annotation_manager = Annotation_manager(self, self.DICOM_serie_manager)
@@ -220,6 +222,8 @@ class orthancWindow(ttk.Frame):
         self.tree.configure(yscrollcommand=self.tree_scrollbar_y.set)
         self.tree_scrollbar_y.grid(row=1, column=1, sticky=(tk.N, tk.S + tk.W))
 
+        self.tree.bind("<Double-1>", self.selectItem)
+
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
 
@@ -231,7 +235,7 @@ class orthancWindow(ttk.Frame):
         self.tree.configure(height=len(patient_studies))
 
         for study in patient_studies:
-            print(dir(study))
+            
             modalities = set( [series.modality for series in study.series] )
             
             try:
@@ -266,8 +270,41 @@ class orthancWindow(ttk.Frame):
                             
             self.tree.insert("", tk.END, text=uid, values=(uid, patient_identifier, description, patient_information, study.date, modalities))
             
+    def selectItem(self, a):
+        curItem = self.tree.focus()
+        logging.info(self.tree.item(curItem))
+        study = pyorthanc.find_studies(self.orthanc,query={"StudyInstanceUID":self.tree.item(curItem)["values"][0]})
+        if len(study) == 0:
+            logging.error(f"Could not find study with UID: {self.tree.item(curItem)['values'][0]}")
+            return
+        elif len(study) > 1:
+            logging.error(f"Found multiple studies with UID: {self.tree.item(curItem)['values'][0]}")
+            return
+        study = study[0]
+        instances_list = {}
+        for serie in study.series:
+            for instance in serie.instances:
+                if serie.uid not in instances_list:
+                    instances_list[serie.uid] = []
+                max_retry = 5
+                retry = 0
+                while True:
+                    try:
+                        instances_list[serie.uid].append(instance.get_pydicom())
+                        break
+                    except httpcore.ReadTimeout:
+                        logging.error(f"Read timeout, retrying, retry {retry}")
+                        retry += 1
+                        if retry > max_retry:
+                            logging.error(f"Max retry reached, skipping instance")
+                            break
+                    except Exception as e:
+                        logging.error(f"Could not get pydicom instance: {e}")
+                        break
 
-
+        self.ITK_viewer.DICOM_serie_manager.load_DICOM_serie(instance_list = instances_list)
+        self.ITK_viewer.DICOM_serie_manager.reset_preview_frames()
+        self.master.select(0)
 class MainWindow(ttk.Notebook):
     """ Main window class """
     def __init__(self, mainframe, threading = False):

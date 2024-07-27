@@ -85,7 +85,7 @@ class DICOM_serie_manager(PatchedFrame):
         logging.warning(f"Not implemented: {self.__class__.__name__}.load_image_serie")
 
     def get_serie_IDs(self):
-        return self.series_file_names.keys()
+        return self.DICOM_serie_instances.keys()
 
     def set_preview_frames(self):
         # Add 9-by-5 buttons to the frame
@@ -126,3 +126,22 @@ class DICOM_serie_manager(PatchedFrame):
     
     def unload_serie(self, serie_ID):
         return self.DICOM_serie_instances[serie_ID].unload_serie()
+    
+    def get_total_slices(self, serie_ID):
+        return self.DICOM_serie_instances[serie_ID].get_total_slices()  
+    
+    def get_dicom_value(self, serie_ID, key = None, pytag = None, slice_index = 0):
+        """ get a DICOM value from a serie 
+        serie_ID: serie ID
+        key: DICOM key, ex "0008|103e" (SeriesDescription)
+        pytag: pydicom tag, ex "SeriesDescription"
+        """
+        if serie_ID not in self.DICOM_serie_instances:
+            logging.warning(f"Serie ID {serie_ID} does not exist")
+            return None
+
+        if key is None and pytag is None:
+            logging.warning("key and pytag are None")
+            return None
+        
+        return self.DICOM_serie_instances[serie_ID].get_dicom_value(key, pytag, slice_index)

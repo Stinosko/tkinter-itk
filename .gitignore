@@ -173,3 +173,5 @@ models/*
 *.nii.gz
 tkinter_itk/plugins/itk_viewer_plugin_MEDSAM_segmentation.py
 run_itk_tkinter copy.py
+pydicom_series_edited.py
+pydicom_series.py

@@ -4,7 +4,7 @@ import logging
 import numpy as np
 from PIL import Image, ImageTk
 import PIL.Image
-
+import pydicom
 import SimpleITK as sitk
 
 from .Utils import  PatchedCanvas
@@ -69,7 +69,7 @@ class ITKviewerFrame(tk.Frame):
         serie_IDs = self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs()
         if serie_IDs is not None and len(serie_IDs) > 0:
             self.serie_ID = list(self.FrameManager.parent.DICOM_serie_manager.get_serie_IDs())[0]
-            self.ITK_image = self.FrameManager.parent.DICOM_serie_manager.get_serie_reader(self.serie_ID).Execute()
+            self.ITK_image = self.FrameManager.parent.DICOM_serie_manager.get_serie_image(self.serie_ID)
         else:
             self.serie_ID = None
             self.ITK_image = None
@@ -131,15 +131,22 @@ class ITKviewerFrame(tk.Frame):
         self.bind('<FocusIn>', self.on_focus_in)
         # self.bind('<FocusOut>', self.on_focus_out)
 
+
     def on_focus_in(self, event):
+        self.make_active()
+
+
+    def make_active(self):
         self.configure(bg="red")
         self.FrameManager.set_active_widget(self)
 
     def on_focus_out(self, event = None):
         self.configure(bg="yellow")
 
+
     def on_leave(self, event):
         self.update_label_meta_info()
+
 
     def get_dummy_DiCOM_array(self):
         """placeholder"""
@@ -282,22 +289,28 @@ class ITKviewerFrame(tk.Frame):
         """placeholder"""
         logging.info("load_new_CT: window: %s, level: %s, ITK_image: %s, serie_ID: %s", window, level, ITK_image, serie_ID)
 
-        # not using self.delete_all_annotations() because update_image should not be called
-        self.annotation_manager.delete_all_serie_ID_annotations(self.serie_ID)
-        
-        if ITK_image is not None:
-            self.ITK_image = ITK_image
-        else: 
-            logging.warning("No ITK_image passed")
-            self.DICOM_serie_manager.get_serie_image(serie_ID)
-        self.serie_ID = serie_ID
-        # print("serie_ID", serie_ID)
         self.slice_index = 0
 
         self.center_X = 0
         self.center_Y = 0
         self.zoom = 1
         self.zoom_delta = 1
+
+        # not using self.delete_all_annotations() because update_image should not be called
+        self.annotation_manager.delete_all_serie_ID_annotations(self.serie_ID)
+        
+        self.serie_ID = serie_ID
+
+        if ITK_image is not None:
+            self.ITK_image = ITK_image
+        else: 
+            logging.warning("No ITK_image passed")
+            self.ITK_image = self.DICOM_serie_manager.get_serie_image(serie_ID)
+
+
+        self.slider.set(0)
+        self.slider.config(to=self.DICOM_serie_manager.get_total_slices(serie_ID) - 1)
+        # print("serie_ID", serie_ID)
         
         # Load serie in memory
         # TODO: unload serie if not used
@@ -305,20 +318,34 @@ class ITKviewerFrame(tk.Frame):
         
         if window is not None:
             self.window = window
-        elif self.DICOM_serie_manager.get_serie_reader(serie_ID) is not None and self.DICOM_serie_manager.get_serie_reader(serie_ID).HasMetaDataKey(0, "0028|1051"):
-            self.window = int(float(self.DICOM_serie_manager.get_serie_reader(serie_ID).GetMetaData(0, "0028|1051")))
+        elif self.DICOM_serie_manager.get_dicom_value(serie_ID, key = "0028|1051") is not None:
+            window = self.DICOM_serie_manager.get_dicom_value(serie_ID, key = "0028|1051")
+            if type(window) == pydicom.multival.MultiValue:
+                window = window[0]
+            logging.debug(f"Window: {window}")
+            self.window = int(float(window))
         else:
-            self.window = sitk.GetArrayFromImage(self.ITK_image).max() - sitk.GetArrayFromImage(self.ITK_image).min()
+            self.window = int(sitk.GetArrayFromImage(self.ITK_image).max() - sitk.GetArrayFromImage(self.ITK_image).min())
         
+        if self.window == None or self.window == 0:
+            logging.warning(f"Window is {self.window}, setting to 400")
+            self.window = 400
+
         if level is not None:
             self.level = level
-        elif self.DICOM_serie_manager.get_serie_reader(serie_ID) is not None and self.DICOM_serie_manager.get_serie_reader(serie_ID).HasMetaDataKey(0, "0028|1050"):
-            self.level = int(float(self.DICOM_serie_manager.get_serie_reader(serie_ID).GetMetaData(0, "0028|1050")))
+        elif self.DICOM_serie_manager.get_dicom_value(serie_ID, key = "0028|1050") is not None:
+            level = self.DICOM_serie_manager.get_dicom_value(serie_ID, key = "0028|1050")
+            if type(level) == pydicom.multival.MultiValue:
+                level = level[0]
+            self.level = int(float(level))
         else:
-            self.level = sitk.GetArrayFromImage(self.ITK_image).max() - self.window/2
+            self.level = int(sitk.GetArrayFromImage(self.ITK_image).max() - self.window/2)
 
-        self.slider.config(to=self.ITK_image.GetSize()[2] - 1)
-        self.slider.set(self.slice_index)
+        if self.level == None or self.level == 0:
+            logging.warning(f"Level is {self.level}, setting to 400")
+            self.level = 200
+
+
 
         self.image_needs_updating = True
         if update_image:
