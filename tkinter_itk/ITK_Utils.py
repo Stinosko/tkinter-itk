@@ -318,22 +318,39 @@ def pydicom_2_sitk(pd_image: pydicom.dataset.FileDataset):
     array = np.empty((len(pd_image), pd_image[0].pixel_array.shape[0], pd_image[0].pixel_array.shape[1]))
     for i, item in enumerate( pd_image):
         array[i, :, :] = item.pixel_array
-    array = array + pd_image[0].RescaleIntercept
-    array[array < pd_image[0].RescaleIntercept] = pd_image[0].RescaleIntercept
+    if hasattr(pd_image[0], 'RescaleSlope') and hasattr(pd_image[0], 'RescaleIntercept'):
+        array = array + pd_image[0].RescaleIntercept
+        array[array < pd_image[0].RescaleIntercept] = pd_image[0].RescaleIntercept
     # convert to SimpleITK image
     image = sitk.GetImageFromArray(array)
-    image.SetOrigin(pd_image[0].get((0x0020, 0x0032)).value)
+    if hasattr(pd_image[0], "ImagePositionPatient"):
+        image.SetOrigin(pd_image[0].ImagePositionPatient)
 
-    spacing = pd_image[0].PixelSpacing
+    if hasattr(pd_image[0], 'PixelSpacing'):
+        spacing = pd_image[0].PixelSpacing
+    else:
+        spacing = [1.0, 1.0]
+        print("Pixel Spacing not found, setting to 1.0")
+    if hasattr(pd_image[0], 'SliceThickness'):
+        slice_spacing = pd_image[0].SliceThickness
+    else:
+        slice_spacing = 1.0
+    image.SetSpacing([spacing for spacing in spacing] + [slice_spacing])
 
-    slice_spacing = pd_image[0].get((0x0018, 0x0050)).value
+    if hasattr(pd_image[0], 'ImageOrientationPatient'):
+        x, y = pd_image[0].get((0x0020, 0x0037)).value[0:3], pd_image[0].get((0x0020, 0x0037)).value[3:6]
+    else:
+        x, y = [1, 0, 0], [0, 1, 0]
+    
+    if hasattr(pd_image[0], 'ImagePositionPatient'):
+        origin_start = pd_image[0].ImagePositionPatient
+        origin_end = pd_image[-1].ImagePositionPatient
 
-    image.SetSpacing([spacing[0], spacing[1], slice_spacing])
-    x, y = pd_image[0].get((0x0020, 0x0037)).value[0:3], pd_image[0].get((0x0020, 0x0037)).value[3:6]
-    origin_start = pd_image[0].get((0x0020, 0x0032)).value
-    origin_end = pd_image[-1].get((0x0020, 0x0032)).value
-    z = np.array([origin_end[i] - origin_start[i] for i in range(3)])
-    z = z / np.linalg.norm(z)
+        z = np.array([origin_end[i] - origin_start[i] for i in range(3)])
+        z = z / np.linalg.norm(z)
+    else:
+        z = [0, 0, 1]
+
     image.SetDirection([x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2]])
     return image
 
