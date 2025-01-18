@@ -138,7 +138,12 @@ class ITKsegmentationFrame(ITKviewerFrame):
 
     def accept_preview(self):
         self.segmentation_serie_manager.accept_preview(self.serie_ID)
+        self.update_image()
 
+    def update_image(self):
+        if self.segmentation_serie_manager.has_preview(self.serie_ID):
+            self.configure(bg = "green")
+        return super().update_image()
 
     def update_label_meta_info_value(self, event):
         x, y = self.get_mouse_location_dicom(event)
