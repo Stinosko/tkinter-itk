@@ -37,7 +37,8 @@ class SAM_segmentation:
 
         self.__previous_state = 0
         self.auto_sam = False
-        
+        self.previous_mask = None
+
         self.frame = tk.Frame(parent)
         self.frame.grid(row=0, column=1, sticky=tk.E + tk.W, pady=1)
 
@@ -238,8 +239,9 @@ class SAM_segmentation:
         image = self.parent.ITKviewer.active_widget.get_image_from_HU_array(img_type = "RGB")
         self.sam_predictor.set_image(np.array(image))
         
-        NP_segmentation = self.parent.ITKviewer.active_widget.get_NP_seg_slice()
-        
+        # NP_segmentation = self.parent.ITKviewer.active_widget.get_NP_seg_slice()
+        # NP_segmentation == NP_segmentation == self.layer_height
+
         if not np.any(points_coords) and not np.any(points_labels):
             points_coords = np.empty((0, 2))
             points_labels = np.empty((0,)) # 1 is add to segmentation, 0 is remove from segmentation
@@ -254,17 +256,18 @@ class SAM_segmentation:
                 points_coords = np.append(points_coords, [annotation.ITK_coords[:-1]], axis=0)
                 points_labels = np.append(points_labels, [0], axis=0)
             
-        self.stop_add()
-        self.stop_remove()
-        self.reset_points()
 
         masks, scores, logits = self.sam_predictor.predict(point_coords=points_coords,
                             point_labels=points_labels, 
+                            mask_input= self.previous_mask[None, :,:] if self.previous_mask is not None else None,
                             multimask_output=True)
         
         mask = masks[np.argmax(scores),:,:]
+        if not self.auto_sam:
+            self.previous_mask = logits[np.argmax(scores),:,:]
+        else:
+            self.reset_points()
         mask = sitk.GetImageFromArray(mask.astype(int))
-
         self.parent.ITKviewer.active_widget.set_segmentation_preview_mask_current_slice(self.layer_height, mask)
         self.update_segmentation()
 
@@ -295,6 +298,8 @@ class SAM_segmentation:
             self.sam_segmentation(points_coords=np.array([coords]), points_labels=np.array([1]))
 
     def accept_segmentation(self):
+        self.reset_points()
+        self.previous_mask = None
         if self.parent.segmentation_serie_manager.get_preview(self.parent.ITKviewer.active_widget.serie_ID) is not None:
             self.parent.ITKviewer.active_widget.accept_preview()    
             self.update_segmentation()
