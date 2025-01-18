@@ -117,6 +117,8 @@ class Segmentation_serie_manager:
     def reset_preview(self, serie_ID):
         self.segmentation_images[serie_ID]["preview"] = None
 
+    def has_preview(self, serie_ID):
+        return "preview" in self.segmentation_images[serie_ID] and self.segmentation_images[serie_ID]["preview"] is not None
     
     def accept_preview(self, serie_ID, name = "default"):
         if serie_ID not in self.segmentation_images:
