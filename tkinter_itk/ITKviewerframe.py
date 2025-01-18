@@ -540,12 +540,51 @@ class ITKviewerFrame(tk.Frame):
         self.transform = transform
         logging.debug([self.image_label.winfo_width(), self.image_label.winfo_height()])
         size = [self.image_label.winfo_width(), self.image_label.winfo_height()]
-        self.slice_ITK_image_transformed = sitk.Resample(self.slice_ITK_image, transform, self.ITK_interpolate, size =size)
+        self.slice_ITK_image_transformed = self.get_PIL_image_from_ITK_image(transform = transform, size = size)
+        return self.slice_ITK_image_transformed
+
+    def get_PIL_image_from_ITK_image(self, transform = None, interpolate = None, size= None):
+        if interpolate is None:
+            interpolate = self.ITK_interpolate
+        if transform is None:
+            transform = sitk.Similarity2DTransform(self.slice_ITK_image.GetDimension())
+            transform.SetCenter((0,0))
+            transform.SetTranslation((self.center_X, self.center_Y))
+            transform.SetScale(1/ self.zoom)
+        if size is None:
+            size = [self.image_label.winfo_width(), self.image_label.winfo_height()]
+        if self.slice_ITK_image.GetNumberOfComponentsPerPixel() == 1:
+            return Image.fromarray( sitk.GetArrayFromImage( sitk.Resample(self.slice_ITK_image, transform, interpolate, size =size)).astype(np.uint8), mode="L")
+        elif self.slice_ITK_image.GetNumberOfComponentsPerPixel() == 3:
+            return Image.fromarray( sitk.GetArrayFromImage( sitk.Resample(self.slice_ITK_image, transform, interpolate, size =size)).astype(np.uint8), mode="RGB")
+
+    def get_PIL_image_resized(self, size, img_type = "RGBA"):
+        """ Return resized image with rescaled aspect ratio to fit the size """
+        image = self.get_image_from_HU_array(img_type)
         
-        if   self.slice_ITK_image_transformed.GetNumberOfComponentsPerPixel() == 1:
-            return Image.fromarray( sitk.GetArrayFromImage(self.slice_ITK_image_transformed).astype(np.uint8), mode="L")
-        elif self.slice_ITK_image_transformed.GetNumberOfComponentsPerPixel() == 3:
-            return Image.fromarray( sitk.GetArrayFromImage(self.slice_ITK_image_transformed).astype(np.uint8), mode="RGB")
+        # calculate the scale factor to maintain the aspect ratio on the longest side  
+        scale_factor = min(size[0] / image.size[0], size[1] / image.size[1])
+        image = image.resize((int(image.size[0] * scale_factor), int(image.size[1] * scale_factor)), Image.ANTIALIAS)
+
+        # create a new image with the desired size
+        image = image.crop((0, 0, size[0], size[1]))
+
+        return image
+
+    def get_ITK_image_resized(self, size):
+        """ Return resized ITK image with rescaled aspect ratio to fit the size """
+        scale = self.get_scale_factor(size)
+        transform = sitk.Similarity2DTransform(self.slice_ITK_image.GetDimension())
+        transform.SetCenter((0,0))
+        transform.SetTranslation((self.center_X, self.center_Y))
+        transform.SetScale(scale)
+        self.transform = transform
+        return sitk.Resample(self.slice_ITK_image, transform, self.ITK_interpolate, size = size)
+
+    def get_scale_factor(self, size):
+        """ Return the scale factor to maintain the aspect ratio on the longest side """
+        image = self.get_image_from_HU_array()
+        return min(size[0] / image.size[0], size[1] / image.size[1])
 
     def get_annotations(self):
         """placeholder"""
