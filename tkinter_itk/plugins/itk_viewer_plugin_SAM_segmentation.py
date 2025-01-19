@@ -90,6 +90,7 @@ class SAM_segmentation:
         self.include_points = []
         self.exclude_points = []
 
+        self.parent.segmentation_serie_manager.reset_preview(self.parent.ITKviewer.active_widget.serie_ID)
         self.stop_add()
         self.stop_remove()
         self.update_segmentation()
@@ -298,10 +299,10 @@ class SAM_segmentation:
             self.sam_segmentation(points_coords=np.array([coords]), points_labels=np.array([1]))
 
     def accept_segmentation(self):
-        self.reset_points()
         self.previous_mask = None
         if self.parent.segmentation_serie_manager.get_preview(self.parent.ITKviewer.active_widget.serie_ID) is not None:
-            self.parent.ITKviewer.active_widget.accept_preview()    
+            self.parent.ITKviewer.active_widget.accept_preview()  
+            self.reset_points()  
             self.update_segmentation()
             self.parent.ITKviewer.active_widget.update_image()
 

@@ -16,6 +16,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
     def __init__(self, parent, **kwargs):
         """ Initialize the ITK viewer Frame """
         self.max_layers = 255
+        self.opacity = 0.5
         self.seg_image_needs_update = True
         super().__init__(parent, **kwargs)
         self.parent = parent
@@ -72,7 +73,7 @@ class ITKsegmentationFrame(ITKviewerFrame):
 
         pixel_type = self.slice_gray_ITK_image.GetPixelID()
         if pixel_type != sitk.sitkVectorUInt8 and pixel_type != sitk.sitkVectorUInt16 and pixel_type != sitk.sitkVectorUInt32 and pixel_type != sitk.sitkVectorUInt64:
-            self.slice_ITK_image = sitk.LabelOverlay(self.slice_gray_ITK_image, NP_seg_slice, opacity=0.8)
+            self.slice_ITK_image = sitk.LabelOverlay(self.slice_gray_ITK_image, NP_seg_slice, opacity=self.opacity)
         return super().zoom_itk(*args, **kwargs)        
 
 
