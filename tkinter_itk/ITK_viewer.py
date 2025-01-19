@@ -2,7 +2,6 @@ import logging
 import tkinter as tk
 from tkinter import Menu, ttk
 import os 
-import pyorthanc
 import SimpleITK as sitk
 
 from .menu.fileMenu import FileMenu
@@ -16,7 +15,6 @@ from .DICOM_manager.DICOM_serie_manager_pydicom import DICOM_serie_manager_pydic
 from .segmentation_serie_manager import Segmentation_serie_manager
 from .Annotation_manager import Annotation_manager
 from .Utils import AutoScrollbar
-import httpcore
 #import progressbar
 
 from typing import List
@@ -79,7 +77,7 @@ class ITKWindow(ttk.Frame):
     segmentation_modes = ["None"]
     current_segmentation_mode = segmentation_modes[0]
 
-    def __init__(self, mainframe, threading = False, *args, **kwargs):
+    def __init__(self, mainframe, threading = False, image_label_layout= example_dual_frame_list, *args, **kwargs):
         """ Initialize the main Frame """
         ttk.Frame.__init__(self, master=mainframe, *args, **kwargs)
         self.load_plugins()
@@ -106,13 +104,13 @@ class ITKWindow(ttk.Frame):
         self.label1 = Topbar(self, self)
         self.label1.grid(row=0, column=0, columnspan = 3, pady=5, sticky = tk.W + tk.E)
 
-        self.DICOM_serie_manager = DICOM_serie_manager_pydicom(self, bg="blue")
+        self.DICOM_serie_manager = DICOM_serie_manager_sitk(self, bg="blue")
         self.DICOM_serie_manager.grid(row=1, column=0, pady=1, sticky = tk.N + tk.S)
         
         self.annotation_manager = Annotation_manager(self, self.DICOM_serie_manager)
         self.segmentation_serie_manager = Segmentation_serie_manager(self, self.DICOM_serie_manager)
 
-        self.ITKviewer = imagesFrameManager(self, image_label_layout = example_dual_frame_list, bg = "yellow", parent=self, threading=threading) # create ITK Frame
+        self.ITKviewer = imagesFrameManager(self, image_label_layout = image_label_layout, bg = "yellow", parent=self, threading=threading) # create ITK Frame
         # self.ITKviewer = ITKviewerFrame(self.mainframe, bg = "red") # create ITK Frame
         # self.ITKviewer = ITKsegmentationFrame(self.mainframe, bg = "red") # create ITK Frame
         self.ITKviewer.grid(row=1, column=1, columnspan = 2, sticky= tk.N + tk.S + tk.E + tk.W)  # show ITK 
@@ -195,6 +193,8 @@ class orthancWindow(ttk.Frame):
     """ Orthanc window class """
     def __init__(self, mainframe, orthanc, *args, **kwargs):
         """ Initialize the main Frame """
+        import pyorthanc
+        import httpcore
         ttk.Frame.__init__(self, mainframe,  *args, **kwargs)
         self.orthanc = orthanc
         self.ITK_viewer = mainframe.ITKviewer
@@ -307,7 +307,7 @@ class orthancWindow(ttk.Frame):
         self.master.select(0)
 class MainWindow(ttk.Notebook):
     """ Main window class """
-    def __init__(self, mainframe, threading = False):
+    def __init__(self, mainframe, threading = False, *args, **kwargs):
         """ Initialize the main Frame """
         ttk.Notebook.__init__(self, master=mainframe, height=100)
         self.mainframe = mainframe
@@ -317,7 +317,7 @@ class MainWindow(ttk.Notebook):
 
         self.s = ttk.Style()
         self.s.configure('Danger.TFrame', background='sky blue', borderwidth=5, relief='raised')
-        self.ITKviewer = ITKWindow(self, threading=threading, style='Danger.TFrame') # create ITK Frame
+        self.ITKviewer = ITKWindow(self, threading=threading, style='Danger.TFrame', *args, **kwargs) # create ITK Frame
 
         self.add(self.ITKviewer, text="ITK viewer")
         self.grid(row=0, column=0, sticky= tk.N + tk.S + tk.E + tk.W)
