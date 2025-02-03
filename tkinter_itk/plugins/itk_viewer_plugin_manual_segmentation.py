@@ -40,7 +40,7 @@ class manual_segmentation:
         return self.frame
     
     def test(self, event):
-        logging.warn("test")
+        logging.warning("test")
 
     def clear_segmentation(self):
         self.parent.ITKviewer.active_widget.clear_segmentation_mask_current_slice(self.layer_height)
