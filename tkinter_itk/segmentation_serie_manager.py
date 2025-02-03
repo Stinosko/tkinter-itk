@@ -22,14 +22,18 @@ class Segmentation_serie_manager:
             self.segmentation_stats[serie_ID] = {}
             print('Added segmentation serie: ' + serie_ID)
         
+        if name == "preview":
+            logging.warning('Preview is a reserved name')
+            return
+
         if name in self.segmentation_images[serie_ID]:
             logging.warning('Segmentation name already exists, overwriting')
             
-        self.segmentation_images[serie_ID] = {}
         self.segmentation_images[serie_ID][name] = sitk.Image(self.DICOM_manager.get_serie_size(serie_ID), sitk.sitkUInt8)
         self.segmentation_images[serie_ID][name].CopyInformation(self.DICOM_manager.get_serie_image(serie_ID))
 
-        self.set_label_dict(serie_ID, label_dict)
+        if label_dict is not None:
+            self.set_label_dict(serie_ID, label_dict)
 
 
     @staticmethod
@@ -46,8 +50,10 @@ class Segmentation_serie_manager:
         return True
 
 
-    def get_segmentation_IDs(self, serie_ID):
-        return self.segmentation_images[serie_ID].keys()
+    def get_segmentation_names(self, serie_ID):
+        seg_names = list(self.segmentation_images[serie_ID].keys())
+        seg_names.remove("preview") if "preview" in seg_names else None
+        return seg_names
 
     def get_serie_length(self, serie_ID, name = "default"):
         return self.segmentation_images[serie_ID][name].GetSize()[2]
@@ -83,6 +89,10 @@ class Segmentation_serie_manager:
             self.segmentation_stats[serie_id] = {}
             logging.info('Added segmentation serie: ' + serie_id)
         
+        if name == "preview":
+            logging.warning('Preview is a reserved name')
+            return
+
         if name in self.segmentation_images[serie_id]:
             logging.warning('Segmentation name already exists, overwriting')
             
@@ -117,13 +127,23 @@ class Segmentation_serie_manager:
     def reset_preview(self, serie_ID):
         self.segmentation_images[serie_ID]["preview"] = None
 
-    def has_preview(self, serie_ID):
-        return "preview" in self.segmentation_images[serie_ID] and self.segmentation_images[serie_ID]["preview"] is not None
+    def has_preview(self, serie_ID) -> bool:
+        if serie_ID not in self.segmentation_images:
+            return False
+        elif "preview" not in self.segmentation_images[serie_ID]:
+            return False
+        elif self.segmentation_images[serie_ID]["preview"] is None:
+            return False
+        return True
     
     def accept_preview(self, serie_ID, name = "default"):
         if serie_ID not in self.segmentation_images:
-            logging.warning('No preview to accept')
+            logging.warning('No preview to accept, serie not found')
             return
+        if name == "preview":
+            logging.warning('Preview is a reserved name')
+            return
+
         self.segmentation_images[serie_ID][name] = self.segmentation_images[serie_ID]["preview"]
         self.reset_preview(serie_ID)
 
