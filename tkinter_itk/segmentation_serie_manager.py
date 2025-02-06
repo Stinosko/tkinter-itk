@@ -66,6 +66,13 @@ class Segmentation_serie_manager:
     def get_segmentation(self, serie_ID, name = "default", add_if_not_exist=False):
         return self.get_image(serie_ID, name, add_if_not_exist)
 
+    def has_segmentation(self, serie_ID, name = "default"):
+        if serie_ID not in self.segmentation_images:
+            return False
+        if name not in self.segmentation_images[serie_ID]:
+            return False
+        return True
+
     def save_segmentations(self, location):
         for serie_ID in self.segmentation_images:
             for segmentation_name in self.segmentation_images[serie_ID]:

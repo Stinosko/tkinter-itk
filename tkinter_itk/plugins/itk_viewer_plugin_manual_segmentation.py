@@ -1,6 +1,27 @@
 import tkinter as tk  
 import logging
 from ..Utils import Spinbox
+import SimpleITK as sitk
+import ast
+
+def bind_event_data(widget, sequence, func, add = None):
+    def _substitute(*args):
+        e = lambda: None #simplest object with __dict__
+        e.data = ast.literal_eval(args[0] ) 
+        if type(e.data) == dict:
+            for key, value in e.data.items():
+                setattr(e, key, value)
+        else:
+            logging.warning("data is not a dict")
+            logging.debug(e.data)
+            raise ValueError("data is not a dict")
+        e.widget = widget
+        return (e,)
+
+    funcid = widget._register(func, _substitute, needcleanup=1)
+    cmd = '{0}if {{"[{1} %d]" == "break"}} break\n'.format('+' if add else '', funcid)
+    widget.tk.call('bind', widget._w, sequence, cmd)
+    return funcid
 
 class manual_segmentation:
     name_short = "manual"
@@ -21,6 +42,10 @@ class manual_segmentation:
 
         self.frame = tk.Frame(parent)
         self.frame.grid(row=0, column=1, sticky=tk.E + tk.W, pady=1)
+        self.start_click_location_X = None
+        self.start_click_location_Y = None
+        self.time_last_event = 0
+
 
         self.layer_frame = tk.Frame(self.frame)
         self.layer_label = tk.Label(self.layer_frame, text="Layer")
@@ -32,9 +57,19 @@ class manual_segmentation:
 
         self.button = tk.Button(self.frame, text="Clear segmentation", command=self.clear_segmentation)
         self.button.grid(row=0, column=1, sticky=tk.E + tk.W, pady=1)
+
+        self.button2 = tk.Button(self.frame, text="Fill holes", command=self.fill_holes)
+        self.button2.grid(row=0, column=2, sticky=tk.E + tk.W, pady=1)
         
         self.bind1 = self.parent.ITKviewer.active_widget.image_label.bind('<ButtonPress-1>', self.button1_press_event_image, add = "+")
         self.bind2 = self.parent.ITKviewer.active_widget.image_label.bind('<ButtonPress-3>', self.button3_press_event_image, add = "+")
+        self.bind3 = bind_event_data(self.parent.ITKviewer.active_widget.image_label, '<<DragEvent>>', self.drag_event_mouse, add = "+")
+        self.bind4 = bind_event_data(self.parent.ITKviewer.active_widget.image_label, '<<StartDragEvent>>', self.drag_event_mouse, add = "+")
+        self.bind5 = bind_event_data(self.parent.ITKviewer.active_widget.image_label, '<<StopDragEvent>>', self.stop_drag_event_mouse, add = "+")
+
+        # self.bind3 = self.parent.ITKviewer.active_widget.image_label.bind('<<DragEvent>>', self.drag_event_mouse, add = "+")
+        # self.bind4 = self.parent.ITKviewer.active_widget.image_label.bind('<<StartDragEvent>>', self.drag_event_mouse, add = "+")
+        # self.bind5 = self.parent.ITKviewer.active_widget.image_label.bind('<<StopDragEvent>>', self.stop_drag_event_mouse, add = "+")
         self.frame.bind("<Destroy>", self.destroy)
         
         return self.frame
@@ -61,6 +96,7 @@ class manual_segmentation:
         else:
             return False
 
+
     def ctrl_is_pressed(self, event):
         if event.state - self.__previous_state == 4:  # means that the Control key is pressed
             logging.debug("ctrl_is_pressed")
@@ -81,6 +117,50 @@ class manual_segmentation:
             return True
         else:
             return False
+
+    def drag_event_mouse(self, event):
+        logging.debug("drag_event_mouse in manual segmentation")
+        #get monitor cooridnates of mouse
+        if self.start_click_location_X is None or self.start_click_location_Y is None:
+            self.start_click_location_X = event.x
+            self.start_click_location_Y = event.y
+            return
+        
+        if event.time < self.time_last_event:
+            logging.debug("Recieved event older than last processed event, dropping event")
+            return
+
+        dicom_start = self.parent.ITKviewer.active_widget.get_mouse_location_dicom(coords=(self.start_click_location_X, self.start_click_location_Y))
+        dicom_end = self.parent.ITKviewer.active_widget.get_mouse_location_dicom(coords=(event.x, event.y))
+
+        # check if dicom_start and dicom_end are valid
+        if dicom_start is None or dicom_end is None:
+            logging.debug("dicom_start or dicom_end is None")
+            self.stop_drag_event_mouse(event)
+            return
+        elif dicom_start[0] < 0 or dicom_start[1] < 0 or dicom_end[0] < 0 or dicom_end[1] < 0:
+            logging.debug("dicom_start or dicom_end out of bounds")
+            self.stop_drag_event_mouse(event)
+            return
+        elif dicom_start[0] >= self.parent.ITKviewer.active_widget.ITK_image.GetSize()[0] or dicom_start[1] >= self.parent.ITKviewer.active_widget.ITK_image.GetSize()[1] or dicom_end[0] >= self.parent.ITKviewer.active_widget.ITK_image.GetSize()[0] or dicom_end[1] >= self.parent.ITKviewer.active_widget.ITK_image.GetSize()[1]:
+            logging.debug("dicom_start or dicom_end out of bounds")
+            self.stop_drag_event_mouse(event)
+            return
+
+        self.start_click_location_X = event.x
+        self.start_click_location_Y = event.y
+        
+        # print(dicom_start, dicom_end)
+        if event.num == 1:
+            self.parent.ITKviewer.active_widget.set_segmentation_line_current_slice(int(dicom_start[0]), int(dicom_start[1]), int(dicom_end[0]), int(dicom_end[1]), self.layer_height)
+        elif event.num  == 3:
+            self.parent.ITKviewer.active_widget.set_segmentation_line_current_slice(int(dicom_end[0]), int(dicom_end[1]), int(dicom_start[0]), int(dicom_start[1]), 0)
+
+
+
+    def stop_drag_event_mouse(self, event):
+        self.start_click_location_X = None
+        self.start_click_location_Y = None
 
     def button1_press_event_image(self, event):
         logging.debug("button1_press_event_image in manual segmentation")
@@ -115,6 +195,15 @@ class manual_segmentation:
         print("destroy manual segmentation")
         self.parent.ITKviewer.active_widget.image_label.unbind('<ButtonPress-1>', self.bind1)
         self.parent.ITKviewer.active_widget.image_label.unbind('<ButtonPress-3>', self.bind2)
+        self.parent.ITKviewer.active_widget.image_label.unbind('<<DragEvent>>', self.bind3)
+        self.parent.ITKviewer.active_widget.image_label.unbind('<<StartDragEvent>>', self.bind4)
+        self.parent.ITKviewer.active_widget.image_label.unbind('<<StopDragEvent>>', self.bind5)
+
+    def fill_holes(self):
+        logging.debug("fill holes")
+        ITK_seg_image = self.parent.ITKviewer.active_widget.get_segmentation_mask_current_slice().__copy__()
+        ITK_seg_image = sitk.BinaryFillhole(ITK_seg_image, foregroundValue=self.layer_height)
+        self.parent.ITKviewer.active_widget.set_segmentation_mask_current_slice(layer_height = self.layer_height, mask = ITK_seg_image)
 
 
 main_class=manual_segmentation

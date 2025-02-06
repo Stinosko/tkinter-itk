@@ -7,6 +7,8 @@ from .Utils import PatchedFrame
 from .ITKviewerframe import ITKviewerFrame
 from .segmentation_serie_manager import Segmentation_serie_manager
 import time
+from skimage.draw import line_aa
+from skimage.draw import line
 
 def set_mask_value(image, mask, value):
     msk32 = sitk.Cast(mask, sitk.sitkFloat32)
@@ -229,11 +231,21 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.update_image()
 
     def set_segmentation_mask_current_slice(self, layer_height: int, mask: np.ndarray):
-        
-        self.ITK_seg_image[:, :, self.slice_index] = set_mask_value(self.ITK_seg_image[:, :, self.slice_index], mask, layer_height) 
+        if type(mask) == np.ndarray:
+            self.ITK_seg_image[:, :, self.slice_index] = set_mask_value(self.ITK_seg_image[:, :, self.slice_index], mask, layer_height) 
+        elif type(mask) == sitk.Image:
+            logging.warning(f"Overwriting segmentation mask of current slice and deleting other layers")
+            self.ITK_seg_image[:, :, self.slice_index] = mask
+        else:
+            logging.error("Mask is not a numpy array or SimpleITK image")
+            logging.error(f"Mask type: {type(mask)}")
+            return
         self.seg_image_needs_update = True
         self.update_image()
     
+    def get_segmentation_mask_current_slice(self):
+        return self.ITK_seg_image[:, :, self.slice_index]
+
     def set_segmentation_preview_mask_current_slice(self, layer_height: int, mask: np.ndarray):
         preview_image = self.segmentation_serie_manager.get_segmentation(self.serie_ID, add_if_not_exist=True, name=self.seg_name).__copy__()
         preview_image[:, :, self.slice_index] = set_mask_value(preview_image[:, :, self.slice_index], mask, layer_height)
@@ -288,6 +300,12 @@ class ITKsegmentationFrame(ITKviewerFrame):
         self.update_image()
 
     def update_image(self):
+        if self.serie_ID is None:
+            return
+        if not self.segmentation_serie_manager.has_segmentation(self.serie_ID, name=self.seg_name):
+            self.segmentation_serie_manager.get_image(self.serie_ID, add_if_not_exist=True, name=self.seg_name)
+            return super().update_image()
+        
         if self.segmentation_serie_manager.has_preview(self.serie_ID):
             self.configure(bg = "green")
         if self.segmentation_selection.options != self.segmentation_serie_manager.get_segmentation_names(self.serie_ID):
@@ -327,4 +345,12 @@ class ITKsegmentationFrame(ITKviewerFrame):
     def seg_name_changed(self, event):
         # logging.info("Segmentation name changed")
         # logging.info(f"New segmentation name: {self.segmentation_selection.get_option()}")
+        self.update_image()
+
+    def set_segmentation_line_current_slice(self, x1, y1, x2, y2, layer_height):
+        np_seg_slice = sitk.GetArrayFromImage(self.ITK_seg_image[:,:, self.slice_index])
+        rr, cc, val = line_aa(y1, x1, y2, x2) # X an Y Axis are inverted in numpy
+        np_seg_slice[rr, cc] = layer_height
+        self.ITK_seg_image[:,:, self.slice_index] = sitk.GetImageFromArray(np_seg_slice)
+        self.seg_image_needs_update = True
         self.update_image()

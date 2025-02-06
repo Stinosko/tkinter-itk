@@ -18,7 +18,6 @@ class right_click_menu(tk.Menu):
         self.add_command(label="Delete annotation", command=self.delete_annotation)
         self.add_command(label="Unload serie", command=self.remove_serie)
 
-        self.parent.image_label.bind("<Button-3>", self.show)
         self.bind("<FocusOut>", self.on_focus_out)
 
     def delete_annotation(self):
@@ -121,16 +120,39 @@ class ITKviewerFrame(tk.Frame):
         self.image_label.bind('<Left>', lambda event: self.zoom_out())
         self.image_label.bind('<Control-B1-Motion>', self.pan_image)
         self.image_label.bind('<Shift-B1-Motion>', self.change_window_level)
-        self.image_label.bind('<ButtonPress-1>', self.start_drag_event_image , add='+')
-        self.image_label.bind('<ButtonRelease-1>', self.stop_drag_event_image)
+        self.image_label.bind('<ButtonPress-1>', self._left_click_press, add='+')
+        self.image_label.bind('<ButtonRelease-1>', self._left_click_release, add='+')
         self.image_label.bind('<Motion>', self.update_label_meta_info_value, add='+')
-        self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord)
+        self.image_label.bind('<B1-Motion>', self.drag_event_rel_coord_b1)
+        self.image_label.bind('<B3-Motion>', self.drag_event_rel_coord_b3)
+        self.image_label.bind('<ButtonPress-3>', self._right_click_press, add='+')
+        self.image_label.bind('<ButtonRelease-3>', self._right_click_release, add='+')
+
+
         # self.image_label.bind('<Configure>', lambda event: self.update_image())
         self.image_label.bind('<Leave>', self.on_leave)
         # self.frame.bind('<Configure>', lambda event: self.update_image_frame())
         self.bind('<FocusIn>', self.on_focus_in)
         # self.bind('<FocusOut>', self.on_focus_out)
 
+    def _right_click_press(self, event):
+        if self.annototation_under_mouse(event):
+            self.right_click_menu.show(event)
+        else:
+            event.num = 3
+            self.start_drag_event_image(event)
+
+    def _left_click_press(self, event):
+        event.num = 1
+        self.start_drag_event_image(event)
+
+    def _right_click_release(self, event):
+        event.num = 3
+        self.stop_drag_event_image(event)
+    
+    def _left_click_release(self, event):
+        event.num = 1
+        self.stop_drag_event_image(event)
 
     def on_focus_in(self, event):
         self.make_active()
@@ -426,7 +448,7 @@ class ITKviewerFrame(tk.Frame):
             return
         
         logging.debug("doing pan")
-        delta_x, delta_y = self.drag_event_rel_coord(event)
+        delta_x, delta_y = self.drag_event_rel_coord_b1(event, broadcast_drag = False)
         self.center_X += (delta_x) / self.zoom
         self.center_Y += (delta_y) / self.zoom
         logging.debug("center X: %s, center Y: %s", self.center_X, self.center_Y)
@@ -445,13 +467,14 @@ class ITKviewerFrame(tk.Frame):
         if (self.start_click_location_X == event.x) and (self.start_click_location_Y == event.y) and self.drag_mode == False:
             logging.debug("button 1 pressed event")
             y ,x = self.get_mouse_location_dicom(event)
-            self.button1_press_event_image(x, y)
+            self.button_press_event_image(x, y, event)
+        self.image_label.event_generate("<<StopDragEvent>>", when="tail", data= {"num": event.num, "x": event.x, "y": event.y, "state": event.state, "time": event.time})
         self.drag_mode = False
         self.start_click_location_X = None
         self.start_click_location_Y = None
     
-    def button1_press_event_image(self, x,y):
-        pass
+    def button_press_event_image(self, x,y,  event):
+        self.image_label.event_generate("<<ButtonPressEvent>>", when="tail", data= {"x": x, "y": y, "state": event.state, "time": event.time, "num": event.num})
 
     
     def get_mouse_location_dicom(self, event = None, coords = None):
@@ -495,24 +518,67 @@ class ITKviewerFrame(tk.Frame):
             # self.label_meta_info.config(text=f"Window: {self.window}, Level: {self.level}, Slice: {self.slice_index}, HU: {HU}, x: {x:0>3}, y: {y:0>3}")
             self.update_label_meta_info(HU = HU, X = x, Y = y)
 
-    def drag_event_rel_coord(self, event):
+    def drag_event_rel_coord(self, event, broadcast_drag = True):
         logging.debug("dragging")
         self.focus_set()
+        # print(event)
+        # for attr in dir(event):
+        #     print(attr, getattr(event, attr))
+        if broadcast_drag:
+            self.image_label.event_generate("<<StartDragEvent>>", when="tail", data= {"num": event.num, "x": self.start_click_location_X, "y": self.start_click_location_Y, "state": event.state, "time": event.time})
         self.drag_mode = True
-        delta_x, delta_y = self.B1_drag_event(event)
+        delta_x, delta_y = self.B1_drag_event(event, broadcast_drag = broadcast_drag)
         return delta_x, delta_y
 
-    def B1_drag_event(self, event):
+    def drag_event_rel_coord_b3(self, event, broadcast_drag = True):
+        logging.debug("dragging")
+        event.num = 3
+        self.drag_event_rel_coord(event, broadcast_drag = broadcast_drag)
+
+    def drag_event_rel_coord_b1(self, event, broadcast_drag = True):
+        logging.debug("dragging")
+        event.num = 1
+        return self.drag_event_rel_coord(event, broadcast_drag = broadcast_drag)
+
+
+    def B1_drag_event(self, event, broadcast_drag = True):
         delta_x = self.start_click_location_X - event.x
         delta_y = self.start_click_location_Y - event.y
+        
+        if self.drag_mode == False:
+            pass
+        if self.drag_mode == True and (delta_x != 0 or delta_y != 0) and broadcast_drag:
+            self.bind_drag_event(event)
 
         self.start_click_location_X = event.x
         self.start_click_location_Y = event.y
-        if self.drag_mode == False:
-            self.bind_drag_event(delta_x, delta_y)
         return delta_x, delta_y
 
-    def bind_drag_event(self, delta_x, delta_y):
+    def ctrl_is_pressed(self, event):
+        if event.state - self.__previous_state == 4:  # means that the Control key is pressed
+            logging.debug("ctrl_is_pressed")
+            return True
+        else:
+            return False
+
+    def shift_is_pressed(self, event):
+        if event.state - self.__previous_state == 1:
+            logging.debug("shift_is_pressed")
+            return True
+        else:
+            return False
+
+    def ctrl_shift_is_pressed(self, event):
+        if event.state - self.__previous_state == 5:
+            logging.debug("ctrl_shift_is_pressed")
+            return True
+        else:
+            return False
+    
+
+    def bind_drag_event(self, event):
+        """bind_drag_event"""
+        self.image_label.event_generate("<<DragEvent>>", when="tail", data= {"num": event.num, "x": event.x, "y": event.y, "state": event.state, "time": event.time})
         return
 
     def change_window_level(self, event):
@@ -524,7 +590,7 @@ class ITKviewerFrame(tk.Frame):
             logging.error(" windowing invalid")
             return
         logging.debug("windowing pan")
-        delta_x, delta_y = self.drag_event_rel_coord(event)
+        delta_x, delta_y = self.drag_event_rel_coord_b1(event, broadcast_drag = False)
         self.window += delta_x
         self.level += delta_y
         
