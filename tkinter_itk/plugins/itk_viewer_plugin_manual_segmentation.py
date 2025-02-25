@@ -60,6 +60,9 @@ class manual_segmentation:
 
         self.button2 = tk.Button(self.frame, text="Fill holes", command=self.fill_holes)
         self.button2.grid(row=0, column=2, sticky=tk.E + tk.W, pady=1)
+
+        self.button3 = tk.Button(self.frame, text="Keep largest blob", command=self.keep_largest_blob)
+        self.button3.grid(row=0, column=3, sticky=tk.E + tk.W, pady=1)
         
         self.bind1 = self.parent.ITKviewer.active_widget.image_label.bind('<ButtonPress-1>', self.button1_press_event_image, add = "+")
         self.bind2 = self.parent.ITKviewer.active_widget.image_label.bind('<ButtonPress-3>', self.button3_press_event_image, add = "+")
@@ -205,5 +208,22 @@ class manual_segmentation:
         ITK_seg_image = sitk.BinaryFillhole(ITK_seg_image, foregroundValue=self.layer_height)
         self.parent.ITKviewer.active_widget.set_segmentation_mask_current_slice(layer_height = self.layer_height, mask = ITK_seg_image)
 
+    def keep_largest_blob(self):
+        logging.debug("keep largest blob")
+        ITK_seg_image: sitk.Image = self.parent.ITKviewer.active_widget.get_segmentation_mask_current_slice().__copy__()
+        binary_image = sitk.BinaryThreshold(ITK_seg_image, lowerThreshold=self.layer_height, upperThreshold=self.layer_height, insideValue=1, outsideValue=0)
+        # https://discourse.itk.org/t/simpleitk-extract-largest-connected-component-from-binary-image/4958
+        component_image = sitk.ConnectedComponent(binary_image)
+        sorted_component_image = sitk.RelabelComponent(component_image, sortByObjectSize=True)
+        largest_component_binary_image = sorted_component_image == 1
+        ITK_seg_image_np = sitk.GetArrayFromImage(ITK_seg_image)
+        largest_component_binary_image_np = sitk.GetArrayFromImage(largest_component_binary_image)
+        pixels_to_remove = (ITK_seg_image_np == self.layer_height) & (largest_component_binary_image_np == 0)
+        ITK_seg_image_np[pixels_to_remove] = 0
+        largest_component_image = sitk.GetImageFromArray(ITK_seg_image_np)
+
+
+
+        self.parent.ITKviewer.active_widget.set_segmentation_mask_current_slice(layer_height = self.layer_height, mask = largest_component_image)
 
 main_class=manual_segmentation
