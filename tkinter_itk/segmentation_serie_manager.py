@@ -53,6 +53,7 @@ class Segmentation_serie_manager:
     def get_segmentation_names(self, serie_ID):
         seg_names = list(self.segmentation_images[serie_ID].keys())
         seg_names.remove("preview") if "preview" in seg_names else None
+        seg_names.remove("") if "" in seg_names else None
         return seg_names
 
     def get_serie_length(self, serie_ID, name = "default"):

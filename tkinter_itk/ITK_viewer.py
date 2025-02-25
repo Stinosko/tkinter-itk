@@ -77,6 +77,18 @@ class ITKWindow(ttk.Frame):
     segmentation_modes = ["None"]
     current_segmentation_mode = segmentation_modes[0]
 
+    filemenu: FileMenu  
+    helpmenu: HelpMenu
+    segmentationmenu: SegemntationMenu
+    label1: Topbar
+    DICOM_serie_manager: DICOM_serie_manager_sitk
+    annotation_manager: Annotation_manager
+    segmentation_serie_manager: Segmentation_serie_manager
+    ITKviewer: imagesFrameManager
+    label3: tk.Label
+
+
+
     def __init__(self, mainframe, threading = False, image_label_layout= example_dual_frame_list, *args, **kwargs):
         """ Initialize the main Frame """
         ttk.Frame.__init__(self, master=mainframe, *args, **kwargs)
@@ -126,7 +138,7 @@ class ITKWindow(ttk.Frame):
 
         self.np_CT_array = None
 
-    def new_image_input(self, image: sitk.Image = None, image_name: str = None, add = False):
+    def new_image_input(self, image: sitk.Image = None, image_name: str = None, add = False) -> str:
         """ Placeholder"""
         self.update_idletasks()
         logging.info('Importing patient data')
@@ -305,8 +317,15 @@ class orthancWindow(ttk.Frame):
         self.ITK_viewer.DICOM_serie_manager.load_DICOM_serie(instance_list = instances_list)
         self.ITK_viewer.DICOM_serie_manager.reset_preview_frames()
         self.master.select(0)
+
+
 class MainWindow(ttk.Notebook):
     """ Main window class """
+    mainframe: tk.Tk
+    threading: bool
+    s: ttk.Style
+    ITKviewer: ITKWindow
+
     def __init__(self, mainframe, threading = False, *args, **kwargs):
         """ Initialize the main Frame """
         ttk.Notebook.__init__(self, master=mainframe, height=100)

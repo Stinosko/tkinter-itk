@@ -197,7 +197,7 @@ class ITKviewerFrame(tk.Frame):
         image.SetDirection([1,0.25,0,0,0.75,0,0,0,1])
         return image
 
-    def get_image_from_HU_array(self, img_type="RGBA"):
+    def get_image_from_HU_array(self, img_type="RGBA") -> Image:
         """ Return image from HU array """
         # https://github.com/jonasteuwen/SimpleITK-examples/blob/master/examples/apply_lut.py
         if self.ITK_image is None:
@@ -628,6 +628,9 @@ class ITKviewerFrame(tk.Frame):
         """ Return resized image with rescaled aspect ratio to fit the size """
         image = self.get_image_from_HU_array(img_type)
         
+        if size == None or size[0] == 0 or size[1] == 0:
+            return image
+
         # calculate the scale factor to maintain the aspect ratio on the longest side  
         scale_factor = min(size[0] / image.size[0], size[1] / image.size[1])
         image = image.resize((int(image.size[0] * scale_factor), int(image.size[1] * scale_factor)), Image.ANTIALIAS)
