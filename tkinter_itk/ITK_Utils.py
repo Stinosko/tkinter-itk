@@ -9,6 +9,7 @@ import nibabel as nib
 import pydicom
 from pydicom.uid import generate_uid
 import time
+from typing import Union, List
 
 def read_image(image_path):
     """
@@ -313,11 +314,15 @@ def GetGDCMSeriesIDs_recursive(DICOM_DIR, reader):
 
 
 # credit to https://niftynet.readthedocs.io/en/v0.6.0/_modules/niftynet/io/image_loader.html
-def pydicom_2_sitk(pd_image: pydicom.dataset.FileDataset):
+def pydicom_2_sitk(pd_image: List[pydicom.dataset.FileDataset]):
     """Convert a pydicom image to a SimpleITK image"""
+    if isinstance(pd_image, pydicom.dataset.FileDataset):
+        pd_image = [pd_image]
+    
     array = np.empty((len(pd_image), pd_image[0].pixel_array.shape[0], pd_image[0].pixel_array.shape[1]))
     for i, item in enumerate( pd_image):
         array[i, :, :] = item.pixel_array
+    
     if hasattr(pd_image[0], 'RescaleSlope') and hasattr(pd_image[0], 'RescaleIntercept'):
         array = array + pd_image[0].RescaleIntercept
         array[array < pd_image[0].RescaleIntercept] = pd_image[0].RescaleIntercept
@@ -328,6 +333,8 @@ def pydicom_2_sitk(pd_image: pydicom.dataset.FileDataset):
 
     if hasattr(pd_image[0], 'PixelSpacing'):
         spacing = pd_image[0].PixelSpacing
+    elif hasattr(pd_image[0], 'ImagerPixelSpacing'):
+        spacing = pd_image[0].ImagerPixelSpacing
     else:
         spacing = [1.0, 1.0]
         print("Pixel Spacing not found, setting to 1.0")
